@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Standart: Herkesin okumasına izin ver.
+    // Yazma işlemleri, aşağıdaki daha spesifik kurallarla yönetilir.
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Genel yazma izni kapalı
+    }
+
+    // Kullanıcıya özel dosyalar (örn: profil resmi)
+    match /users/{userId}/{fileName} {
+        allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Fotoğraflar
+    match /photos/{fileName} {
+      allow write: if request.auth != null;
+    }
+
+    // Videolar
+    match /videos/{fileName} {
+      allow write: if request.auth != null;
+    }
+
+    // Video küçük resimleri
+    match /thumbnails/{fileName} {
+      allow write: if request.auth != null;
+    }
+
+    // Ses kayıtları
+    match /ses/{fileName} {
+      allow write: if request.auth != null;
+    }
+  }
+}

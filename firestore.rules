@@ -1,0 +1,166 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // YARDIMCI FONKSİYONLAR
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isGroupMember(groupId) {
+      return isAuthenticated() &&
+      exists(/databases/$(database)/documents/groups/$(groupId)) &&
+      request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+    }
+    
+    function canDeleteOrUpdateMessage(groupId, message) {
+      let groupData = get(/databases/$(database)/documents/groups/$(groupId)).data;
+      return isOwner(message.senderId) || isOwner(groupData.ownerId);
+    }
+    
+    // KULLANICI KOLEKSİYONLARI
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isOwner(userId);
+    }
+    
+    // YENİ: Kullanıcı adı benzersizliği için kullanılan koleksiyonlar
+    // Kimliği doğrulanmış herkes, yeni bir kullanıcı adı rezerve edebilir veya sayacı artırabilir.
+    match /kullanici_adlari/{username} {
+      allow read, write: if isAuthenticated();
+    }
+    match /ad_numaralari/{baseUsername} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /privateUserData/{userId} { allow read, write: if isOwner(userId); }
+    match /signups/{userId} { allow read, write: if isOwner(userId); }
+
+    // İÇERİK KOLEKSİYONLARI
+    match /photos/{photoId} {
+      allow list, get: if isAuthenticated();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow delete: if isOwner(resource.data.ownerId);
+      allow update: if (isOwner(resource.data.ownerId)) || 
+                     (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'viewCount', 'commentsCount']));
+      
+      match /comments/{commentId} {
+        allow read, create: if isAuthenticated();
+        allow update: if (isOwner(resource.data.userId)) || 
+                       (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']));
+        allow delete: if isOwner(resource.data.userId);
+      }
+    }
+
+    match /videos/{videoId} {
+      allow list, get: if isAuthenticated();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow delete: if isOwner(resource.data.ownerId);
+      allow update: if (isOwner(resource.data.ownerId)) || 
+                     (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'viewCount', 'commentsCount']));
+
+      match /comments/{commentId} {
+        allow read, create: if isAuthenticated();
+        allow update: if (isOwner(resource.data.userId)) || 
+                       (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']));
+        allow delete: if isOwner(resource.data.userId);
+      }
+    }
+    
+    match /ses/{sesId} {
+      allow list, get: if isAuthenticated();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow delete: if isOwner(resource.data.ownerId);
+      allow update: if (isOwner(resource.data.ownerId)) || 
+                     (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'viewCount', 'commentsCount']));
+      
+      match /comments/{commentId} {
+        allow read, create: if isAuthenticated();
+        allow update: if (isOwner(resource.data.userId)) || 
+                       (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']));
+        allow delete: if isOwner(resource.data.userId);
+      }
+    }
+
+    match /letters/{letterId} {
+      allow list: if isAuthenticated();
+      // YENİ: Mühürlü mektuplar için okuma kuralı
+      allow get: if isAuthenticated() && 
+                  (resource.data.privacy == "PUBLIC" || 
+                   resource.data.ownerId == request.auth.uid || 
+                   resource.data.recipientId == request.auth.uid);
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow delete: if isOwner(resource.data.ownerId);
+      allow update: if (isOwner(resource.data.ownerId)) ||
+                     (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'viewCount', 'commentsCount']));
+  
+      match /comments/{commentId} {
+        allow read, create: if isAuthenticated();
+        allow update: if (isOwner(resource.data.userId)) || 
+                       (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']));
+        allow delete: if isOwner(resource.data.userId);
+      }
+    }
+    
+    // --- REAKSİYONLAR İÇİN NİHAİ VE AYRI KURALLAR ---
+    match /userReactions/{userId} {
+      allow read: if isOwner(userId);
+
+      match /letter_reactions/{reactionId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /ses_reactions/{reactionId} {
+         allow read, write: if isOwner(userId);
+      }
+      
+      match /video_reactions/{reactionId} {
+         allow read, write: if isOwner(userId);
+      }
+
+      match /photo_reactions/{reactionId} {
+         allow read, write: if isOwner(userId);
+      }
+    }
+
+    // SOHBET KOLEKSİYONLARI
+    match /groups/{groupId} {
+      allow read: if !resource.data.isPrivate || isGroupMember(groupId);
+      allow list: if isAuthenticated();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow update, delete: if isOwner(resource.data.ownerId);
+		
+      match /messages/{messageId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId) && isOwner(request.resource.data.senderId);
+        allow update, delete: if canDeleteOrUpdateMessage(groupId, message.data);
+      }
+    }
+
+    match /private_chats/{chatId} {
+      function isParticipant() {
+        return isAuthenticated() && request.auth.uid in chatId.split('_');
+      }
+
+      allow read, update: if isParticipant();
+      
+      allow create: if isParticipant() && 
+                     request.resource.data.participants.hasAll(chatId.split('_')) &&
+                     request.resource.data.participants.size() == 2;
+
+      match /messages/{messageId} {
+        allow read, create: if isParticipant();
+        allow update, delete: if isOwner(resource.data.senderId);
+      }
+    }
+
+    match /chatRooms/{roomId=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
