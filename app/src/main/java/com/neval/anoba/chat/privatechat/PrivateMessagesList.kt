@@ -36,9 +36,7 @@ fun PrivateMessageRowItem(
 ) {
     val isSender = message.senderId == currentUserId
     val formattedTime = remember(message.timestampMillis) {
-        message.timestampMillis.let {
-            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it))
-        } ?: "--:--"
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestampMillis))
     }
 
     val bubbleColor = if (isSender) {
@@ -103,6 +101,7 @@ fun PrivateMessageRowItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PrivateMessagesList(
     modifier: Modifier = Modifier,
@@ -118,7 +117,6 @@ fun PrivateMessagesList(
     val todayDateString = dateFormat.format(Date())
 
     val sortedMessageGroups = messages
-        .filter { true }
         .groupBy { message -> dateFormat.format(Date(message.timestampMillis)) }
         .entries
         .sortedBy { (dateString, _) ->

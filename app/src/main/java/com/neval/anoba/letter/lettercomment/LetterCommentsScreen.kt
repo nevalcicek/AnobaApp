@@ -65,6 +65,7 @@ import com.neval.anoba.login.state.AuthState
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,10 +100,9 @@ fun LetterCommentsScreen(
     }
     val mainComments = commentTree.keys.sortedBy { it.timestamp }
 
-    LaunchedEffect(mainComments.size) {
-        if (mainComments.isNotEmpty()) {
-            listState.animateScrollToItem(index = 0)
-        }
+    LaunchedEffect(comments.size) {
+        if (comments.isNotEmpty()) {
+            listState.animateScrollToItem(index = comments.size - 1)}
     }
 
     LaunchedEffect(replyingToComment) {
@@ -200,13 +200,13 @@ fun LetterCommentsScreen(
             } else {
                 LazyColumn(
                     state = listState,
-                    reverseLayout = true,
+                    reverseLayout = false,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     mainComments.forEach { mainComment ->
-                        item(key = mainComment.id) {
+                        item(key = mainComment.id.ifBlank { UUID.randomUUID().toString() }) {
                             val currentUserId = (authState as? AuthState.Authenticated)?.uid
                             LetterCommentItem(
                                 comment = mainComment,
@@ -216,7 +216,7 @@ fun LetterCommentsScreen(
                                 onDeleteClicked = { viewModel.deleteComment(mainComment) }
                             )
                         }
-                        items(commentTree[mainComment].orEmpty(), key = { "reply_${it.id}" }) { reply ->
+                        items(commentTree[mainComment].orEmpty(), key = { reply -> "reply_${reply.id.ifBlank { UUID.randomUUID().toString() }}" }) { reply ->
                             val currentUserId = (authState as? AuthState.Authenticated)?.uid
                             Row {
                                 Spacer(modifier = Modifier.width(52.dp))

@@ -1,6 +1,7 @@
 package com.neval.anoba.chat.privatechat
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -60,9 +59,8 @@ import com.neval.anoba.chat.general.GeneralChatUser
 import com.neval.anoba.common.utils.Constants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PrivateChatScreen(
     navController: NavHostController,
@@ -293,112 +291,91 @@ fun PrivateChatScreen(
                                     val receiverId = selectedUserForChat!!.id
                                     val contentToSend = messageText
                                     if (contentToSend.isNotBlank()) {
-                                        privateChatViewModel.addMessage(
-                                            receiverId,
-                                            contentToSend
-                                        )
+                                        privateChatViewModel.addMessage(receiverId, contentToSend)
                                     }
                                 },
                                 enabled = messageText.isNotBlank()
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Gönder")
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Gönder",
+                                    tint = if (messageText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                )
                             }
                         }
                     }
                 }
             }
-
-            if (showUserSelectionDialog) {
-                UserSelectionDialog(
-                    allUsers = allUsers.filter { it.id != currentUserId },                    searchQuery = userSearchQuery,
-                    onSearchQueryChange = { userSearchQuery = it },
-                    onUserSelected = {
-                        selectedUserForChat = it
-                        showUserSelectionDialog = false
-                        userSearchQuery = ""
-                    },
-                    onDismiss = {
-                        showUserSelectionDialog = false
-                        userSearchQuery = ""
-                        if (selectedUserForChat == null) {
-                            navController.popBackStack()
-                        }
-                    }
-                )
-            }
         }
     )
+
+    if (showUserSelectionDialog) {
+        UserSelectionDialog(
+            users = allUsers,
+            onUserSelected = {
+                selectedUserForChat = it
+                showUserSelectionDialog = false
+            },
+            onDismiss = {
+                if (selectedUserForChat == null) {
+                    navController.popBackStack() // Eğer hiç kullanıcı seçilmediyse geri git
+                }
+                showUserSelectionDialog = false
+            },
+            searchQuery = userSearchQuery,
+            onSearchQueryChange = { userSearchQuery = it }
+        )
+    }
 }
 
 @Composable
 fun UserSelectionDialog(
-    allUsers: List<GeneralChatUser>,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
+    users: List<GeneralChatUser>,
     onUserSelected: (GeneralChatUser) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit
 ) {
-    val filteredUsers by remember(searchQuery, allUsers) {
-        derivedStateOf {
-            if (searchQuery.isNotBlank()) {
-                allUsers.filter { user ->
-                    user.displayName.contains(searchQuery, ignoreCase = true)
-                }
-            } else {
-                allUsers
-            }
-        }
+    val filteredUsers = users.filter {
+        it.safeDisplayName.contains(searchQuery, ignoreCase = true)
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Kullanıcı Seç") },
+        title = { Text("Sohbet Etmek İçin Kullanıcı Seç") },
         text = {
             Column {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Kullanıcı ara...") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Ara") },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Temizle")
-                            }
-                        }
-                    },
-                    singleLine = true
+                    label = { Text("Kullanıcı Ara") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-
                 if (filteredUsers.isEmpty()) {
-                    Text("Sonuç bulunamadı.", modifier = Modifier.padding(vertical = 16.dp))
+                    Box(modifier = Modifier.heightIn(min = 100.dp), contentAlignment = Alignment.Center) {
+                        Text("Uygun kullanıcı bulunamadı.")
+                    }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 300.dp)
-                    ) {
-                        items(filteredUsers, key = { it.id.ifBlank { UUID.randomUUID().toString() } }) { user ->
+                    LazyColumn {
+                            items(filteredUsers, key = { it.id.ifBlank { com.android.identity.util.UUID.randomUUID().toString() } }) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onUserSelected(user) }
+                                    .clickable { onUserSelected(it) }
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.AccountCircle,
-                                    contentDescription = "Kullanıcı ikonu",
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    user.displayName,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(it.safeDisplayName)
                             }
                             HorizontalDivider()
                         }
@@ -406,10 +383,9 @@ fun UserSelectionDialog(
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Kapat")
-            }
+        confirmButton = { },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Kapat") }
         }
     )
 }

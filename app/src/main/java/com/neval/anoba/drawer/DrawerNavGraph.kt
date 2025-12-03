@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.home.HomeScreen
+import org.koin.androidx.compose.koinViewModel
 
 fun NavGraphBuilder.drawerNavGraph(navController: NavHostController) {
     navigation(
@@ -13,7 +14,10 @@ fun NavGraphBuilder.drawerNavGraph(navController: NavHostController) {
         route = Constants.DRAWER_GRAPH
     ) {
         composable(Constants.HOME_SCREEN) {
-            HomeScreen(navController = navController)
+            HomeScreen(
+                navController = navController,
+                liveStreamViewModel = koinViewModel()
+            )
         }
         composable(Constants.PROFILE_SCREEN) {
             ProfileScreen(navController)

@@ -99,9 +99,9 @@ fun SesCommentsScreen(
     }
     val mainComments = commentTree.keys.sortedBy { it.timestamp }
 
-    LaunchedEffect(mainComments.size) {
-        if (mainComments.isNotEmpty()) {
-            listState.animateScrollToItem(index = 0)
+    LaunchedEffect(comments.size) {
+        if (comments.isNotEmpty()) {
+            listState.animateScrollToItem(index = comments.size - 1)
         }
     }
 
@@ -200,7 +200,7 @@ fun SesCommentsScreen(
             } else {
                 LazyColumn(
                     state = listState,
-                    reverseLayout = true,
+                    reverseLayout = false,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)

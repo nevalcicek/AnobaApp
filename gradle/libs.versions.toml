@@ -9,10 +9,11 @@ koinAndroid = "3.5.3"
 koinCore = "3.5.3"
 koinAndroidxNavigation = "3.5.3"
 kotlin = "2.0.21"
-composeBom = "2024.04.01"
-firebaseBom = "33.9.0" # Sizin orijinal versiyonunuza geri dönüldü
-firebase-storage = "20.3.0"
+composeBom = "2024.06.00"
+composeCompiler = "1.5.14"
+firebaseBom = "33.9.0"
 coilCompose = "2.6.0"
+coilVideo = "2.6.0"
 datastorePreferences = "1.1.4"
 coreKtx = "1.15.0"
 kotlinxCoroutinesAndroid = "1.8.0"
@@ -27,35 +28,10 @@ kotlinxSerializationJson = "1.7.3"
 googleGmsGoogleServices = "4.4.2"
 playServicesAuth = "21.3.0"
 koinAndroidxCompose = "3.5.3"
-firebaseAuth = "23.2.0"
-# firebaseFirestoreKtx versiyonu kaldırıldı, çünkü BoM yönetecek.
-material3 = "1.3.2"
-animation = "1.7.8"
-foundation = "1.7.8"
-roomRuntime = "2.8.0"
-runner = "1.7.0"
-runtime = "1.7.8"
-runtimeSaveable = "1.7.8"
-startupRuntime = "1.2.0"
-ui = "1.7.8"
-uiGeometry = "1.7.8"
-uiText = "1.7.8"
-uiToolingData = "1.7.8"
-uiTooling = "1.7.8"
-uiUnit = "1.7.8"
-uiUtil = "1.7.8"
-materialIconsCore = "1.7.8"
-materialIconsExtended = "1.7.8"
-materialRipple = "1.7.8"
 room = "2.6.1"
-animationGraphics = "1.9.2"
-material3Version = "1.4.0"
-roomKtx = "2.8.2"
 generativeai = "0.9.0"
-foundationLayout = "1.9.4"
 toolsCore = "1.0.0-alpha13"
-uiTextVersion = "1.9.4"
-foundationLayoutVersion = "1.9.5"
+identityJvm = "202411.1"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -63,9 +39,9 @@ androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junit" }
 androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3Common" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Ui" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
-androidx-runner = { module = "androidx.test:runner", version.ref = "runner" }
-androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-runner = { module = "androidx.test:runner", version = "1.7.0" }
+androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version = "1.2.0" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroid" }
 junit = { module = "junit:junit", version.ref = "junitVersion" }
@@ -78,53 +54,52 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-tooling-data = { module = "androidx.compose.ui:ui-tooling-data", version.ref = "uiToolingData" }
-androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
-androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundation" }
-androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "materialIconsCore" }
-androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
-androidx-material-ripple = { module = "androidx.compose.material:material-ripple", version.ref = "materialRipple" }
-androidx-animation = { module = "androidx.compose.animation:animation", version.ref = "animation" }
-androidx-animation-core = { module = "androidx.compose.animation:animation-core", version.ref = "animation" }
-androidx-runtime = { module = "androidx.compose.runtime:runtime", version.ref = "runtime" }
-androidx-runtime-saveable = { module = "androidx.compose.runtime:runtime-saveable", version.ref = "runtimeSaveable" }
-androidx-ui-geometry = { module = "androidx.compose.ui:ui-geometry", version.ref = "uiGeometry" }
-androidx-ui-unit = { module = "androidx.compose.ui:ui-unit", version.ref = "uiUnit" }
-androidx-ui-text = { module = "androidx.compose.ui:ui-text", version.ref = "uiText" }
-androidx-ui-util = { module = "androidx.compose.ui:ui-util", version.ref = "uiUtil" }
+androidx-ui-tooling-data = { module = "androidx.compose.ui:ui-tooling-data" }
+androidx-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-material-ripple = { module = "androidx.compose.material:material-ripple" }
+androidx-animation = { module = "androidx.compose.animation:animation" }
+androidx-animation-core = { module = "androidx.compose.animation:animation-core" }
+androidx-runtime = { module = "androidx.compose.runtime:runtime" }
+androidx-runtime-saveable = { module = "androidx.compose.runtime:runtime-saveable" }
+androidx-ui-geometry = { module = "androidx.compose.ui:ui-geometry" }
+androidx-ui-unit = { module = "androidx.compose.ui:ui-unit" }
+androidx-ui-text = { module = "androidx.compose.ui:ui-text" }
+androidx-ui-util = { module = "androidx.compose.ui:ui-util" }
+androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-auth = { module = "com.google.firebase:firebase-auth" } # Versiyon referansı kaldırıldı
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx" }
-firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" } # Versiyon referansı kaldırıldı
-firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" } # Versiyon referansı kaldırıldı
-
-# ÖĞRENME NOTU: App Check için gerekli kütüphaneleri buraya ekliyoruz.
+firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
+firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-appcheck-ktx = { module = "com.google.firebase:firebase-appcheck-ktx" }
 
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+coil-video = { module = "io.coil-kt:coil-video", version.ref = "coilVideo" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koinAndroidxCompose" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "uiTooling" }
+material3 = { module = "androidx.compose.material3:material3" }
 androidxRoomCompiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics", version.ref = "animationGraphics" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
-androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 androidx-tools-core = { group = "androidx.privacysandbox.tools", name = "tools-core", version.ref = "toolsCore" }
-androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiTextVersion" }
-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayoutVersion" }
+foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+identity-jvm = { group = "com.android.identity", name = "identity-jvm", version.ref = "identityJvm" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

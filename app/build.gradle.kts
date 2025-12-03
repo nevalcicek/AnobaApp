@@ -42,7 +42,7 @@ android {
         buildConfig = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
+        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
 }
 
@@ -68,7 +68,7 @@ dependencies {
     implementation(libs.androidx.ui.text)
     implementation(libs.androidx.ui.util)
     implementation(libs.androidx.ui.tooling.data)
-    implementation(libs.ui)
+    implementation(libs.compose.ui)
     implementation(libs.material3)
     implementation(libs.androidx.core.splashscreen)
 
@@ -95,12 +95,11 @@ dependencies {
         exclude(group = "com.android.support", module = "support-v4")
     }
 
-    implementation(libs.androidx.compose.animation.graphics)
     implementation(libs.androidx.room.ktx)
     implementation(libs.generativeai)
     implementation(libs.androidx.tools.core)
-    implementation("io.coil-kt:coil-video:2.6.0")
-    implementation(libs.foundation.layout)
+    implementation(libs.coil.video)
+    implementation(libs.identity.jvm)
 
     kapt(libs.androidxRoomCompiler)
 
@@ -114,7 +113,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)
     testImplementation(libs.junit)
-    debugImplementation(libs.ui.tooling)
+    debugImplementation(libs.compose.ui.tooling)
 }
 
 kapt {

@@ -114,6 +114,7 @@ fun GroupMessageRowItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GroupMessagesList(
     modifier: Modifier = Modifier,
