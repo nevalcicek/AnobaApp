@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -42,20 +41,6 @@ class AuthViewModel(
     val currentUserId: StateFlow<String?> = authService.authStateFlow
         .mapLatest { state -> (state as? AuthState.Authenticated)?.uid }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-
-    sealed class ViewModelState {
-        object Loading : ViewModelState()
-        data class Authenticated(
-            val displayName: String?,
-            val email: String?,
-            val photoUrl: String?,
-            val registrationDate: String?,
-            val userNumber: Int?
-        ) : ViewModelState()
-
-        data class LoggedOut(val message: String? = null) : ViewModelState()
-    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val userName: StateFlow<String> = authService.authStateFlow
@@ -100,40 +85,6 @@ class AuthViewModel(
         }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val viewModelState: StateFlow<ViewModelState> = authService.authStateFlow
-        .combine(sonNumara) { serviceState, number ->
-            when (serviceState) {
-                is AuthState.Authenticated -> {
-                    _isLoading.value = false
-                    ViewModelState.Authenticated(
-                        displayName = serviceState.displayName,
-                        email = serviceState.email,
-                        photoUrl = serviceState.photoUrl,
-                        registrationDate = serviceState.registrationDate,
-                        userNumber = number
-                    )
-                }
-
-                is AuthState.Unauthenticated -> {
-                    _isLoading.value = false
-                    ViewModelState.LoggedOut()
-                }
-
-                is AuthState.Error -> {
-                    _isLoading.value = false
-                    ViewModelState.LoggedOut(message = serviceState.message)
-                }
-
-                is AuthState.Loading -> {
-                    _isLoading.value = true
-                    ViewModelState.Loading
-                }
-            }
-        }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ViewModelState.Loading)
 
     private fun fetchUserNumber(uid: String) {
         viewModelScope.launch {
@@ -199,10 +150,6 @@ class AuthViewModel(
                 onLogoutFinished?.invoke()
             }
         }
-    }
-    fun triggerAuthCheck() {
-        Log.d("AuthViewModel", "AuthService'e kimlik kontrolü tetikleniyor.")
-        authService.refreshAuthState()
     }
 
     fun updateUserName(

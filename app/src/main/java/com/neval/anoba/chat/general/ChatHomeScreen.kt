@@ -1,6 +1,7 @@
 package com.neval.anoba.chat.general
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,13 +63,17 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import com.neval.anoba.R
 import com.neval.anoba.chat.ui.GROUP_CHAT_FLOW_ROUTE
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.common.viewmodel.AuthViewModel
@@ -229,38 +234,41 @@ fun ChatHomeScreen(
         ) {
             ChatScreenHeader(navController = navController)
 
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                state = listState,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(
-                    messages,
-                    key = { _, message -> message.id.ifBlank { message.hashCode() } }) { index, message ->
-                    val previousMillis = messages.getOrNull(index - 1)?.timestampMillis
-                    val currentMillis = message.timestampMillis
-                    val isFirstMessageOfDay =
-                        index == 0 || !isSameDay(previousMillis, currentMillis)
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
 
-                    if (isFirstMessageOfDay) {
-                        GeneralDateHeader(dateText = getFormattedDate(currentMillis))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(
+                        messages,
+                        key = { _, message -> message.id.ifBlank { message.hashCode() } }) { index, message ->
+                        val previousMillis = messages.getOrNull(index - 1)?.timestampMillis
+                        val currentMillis = message.timestampMillis
+                        val isFirstMessageOfDay =
+                            index == 0 || !isSameDay(previousMillis, currentMillis)
 
-                    }
+                        if (isFirstMessageOfDay) {
+                            GeneralDateHeader(dateText = getFormattedDate(currentMillis))
 
-                    ChatMessageItem(
-                        message = message,
-                        isSentByCurrentUser = message.senderId == currentUserId,
-                        isSelected = selectedMessages.contains(message),
-                        onLongPress = {
-                            if (!isEditMode) chatViewModel.onMessageLongClicked(it)
-                        },
-                        onClick = {
-                            if (isSelectionModeActive) {
-                                chatViewModel.onMessageClicked(it)
-                            }
                         }
-                    )
+
+                        ChatMessageItem(
+                            message = message,
+                            isSentByCurrentUser = message.senderId == currentUserId,
+                            isSelected = selectedMessages.contains(message),
+                            onLongPress = {
+                                if (!isEditMode) chatViewModel.onMessageLongClicked(it)
+                            },
+                            onClick = {
+                                if (isSelectionModeActive) {
+                                    chatViewModel.onMessageClicked(it)
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -296,7 +304,7 @@ fun ChatHomeScreen(
                     },
                     bringIntoViewRequester = bringIntoViewRequester,
                     focusRequester = focusRequester,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
             }
         }
@@ -444,6 +452,8 @@ private fun ChatInput(
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Row(
         modifier = modifier
             .padding(horizontal = 8.dp, vertical = 8.dp)
@@ -459,6 +469,7 @@ private fun ChatInput(
                 .bringIntoViewRequester(bringIntoViewRequester)
                 .onFocusEvent { focusState ->
                     if (focusState.isFocused) {
+                        keyboardController?.show()
                         coroutineScope.launch {
                             bringIntoViewRequester.bringIntoView()
                         }

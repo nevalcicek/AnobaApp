@@ -18,9 +18,13 @@ data class GroupMessage(
     val senderName: String? = null,
     override val content: String? = null,
     val groupId: String? = null,
+    val readBy: List<String> = emptyList(),
     @ServerTimestamp
     val timestamp: Date? = null
 ) : GroupMessageable {
     override val timestampMillis: Long?
         get() = timestamp?.time
+
+    @Suppress("unused")
+    constructor() : this("", null, null, null, null, emptyList(), null)
 }

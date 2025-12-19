@@ -72,7 +72,7 @@ fun LiveSheet(
                 Text("Uygulama Kürsüsü", style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = {
                     scope.launch {
-                        bottomSheetState.hide() // collapse() yerine hide()
+                        bottomSheetState.partialExpand()
                     }
                 }) {
                     Icon(Icons.Filled.Close, contentDescription = "Kapat")

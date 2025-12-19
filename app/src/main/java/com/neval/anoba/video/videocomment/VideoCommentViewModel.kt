@@ -32,7 +32,6 @@ class VideoCommentViewModel(
     init {
         listenForComments()
     }
-
     private fun listenForComments() {
         viewModelScope.launch {
             repository.getCommentsStream(videoId)
@@ -48,11 +47,9 @@ class VideoCommentViewModel(
                 }
         }
     }
-
     fun onCommentTextChanged(text: String) {
         _commentText.value = text
     }
-
     fun addComment() {
         val content = _commentText.value.trim()
         if (content.isEmpty()) return

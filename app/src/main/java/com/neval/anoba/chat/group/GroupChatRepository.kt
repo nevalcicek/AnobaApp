@@ -1,15 +1,20 @@
 package com.neval.anoba.chat.group
 
+import android.net.Uri
 import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.dataObjects
+import com.google.firebase.storage.FirebaseStorage
 import com.neval.anoba.chat.general.GeneralChatUser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
+
 class GroupChatRepository {
 
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
     private val tag = "GroupChatRepository"
     fun getGroupsStreamForUser(userId: String): Flow<List<ChatGroup>> {
         return db.collection("groups")
@@ -92,6 +97,31 @@ class GroupChatRepository {
         )
         db.collection("groups").document(groupId).update(updates).await()
     }
+    suspend fun uploadGroupImage(groupId: String, imageUri: Uri): String {
+        val storageRef = storage.reference.child("group_images/$groupId/${UUID.randomUUID()}")
+        val uploadTask = storageRef.putFile(imageUri).await()
+        return uploadTask.storage.downloadUrl.await().toString()
+    }
+
+    suspend fun updateGroupImageUrl(groupId: String, imageUrl: String) {
+        db.collection("groups").document(groupId).update("imageUrl", imageUrl).await()
+    }
+
+    suspend fun updateTypingStatus(groupId: String, userId: String, userName: String, isTyping: Boolean) {
+        val typingUpdate = if (isTyping) {
+            mapOf("typingUsers.$userId" to userName)
+        } else {
+            mapOf("typingUsers.$userId" to FieldValue.delete())
+        }
+        db.collection("groups").document(groupId).update(typingUpdate).await()
+    }
+
+    suspend fun markMessageAsRead(groupId: String, messageId: String, userId: String) {
+        val messageRef = db.collection("groups").document(groupId)
+            .collection("messages").document(messageId)
+        messageRef.update("readBy", FieldValue.arrayUnion(userId)).await()
+    }
+
 
     @Suppress("UNUSED_PARAMETER")
     fun muteGroup(groupId: String, userId: String) { /* Implementasyon gerekli */ }

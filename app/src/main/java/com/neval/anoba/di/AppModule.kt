@@ -6,7 +6,6 @@ import coil.decode.VideoFrameDecoder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import com.neval.anoba.MyApplication
 import com.neval.anoba.chat.general.GeneralChatRepository
 import com.neval.anoba.chat.general.GeneralChatViewModel
 import com.neval.anoba.chat.group.GroupChatRepository
@@ -60,9 +59,6 @@ fun createAppModuleDefinition(
     firestoreInstance: FirebaseFirestore,
     storageInstance: FirebaseStorage
 ) = module {
-
-    // App Check'i ihtiyaç anında başlat
-    MyApplication.initAppCheckIfNeeded()
 
     // Temel CoroutineScope
     single { CoroutineScope(SupervisorJob() + Dispatchers.IO) }

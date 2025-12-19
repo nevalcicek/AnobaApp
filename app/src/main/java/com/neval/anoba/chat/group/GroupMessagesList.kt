@@ -10,6 +10,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,7 +36,8 @@ fun GroupMessageRowItem(
     isSelected: Boolean,
     onMessageClick: (GroupMessage) -> Unit,
     onMessageLongClick: (GroupMessage) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    groupMemberCount: Int
 ) {
     val isSender = message.senderId == currentUserId
     val formattedTime = remember(message.timestampMillis) {
@@ -64,6 +69,11 @@ fun GroupMessageRowItem(
             onLongClick = { onMessageLongClick(message) }
         )
         .padding(vertical = 4.dp, horizontal = 8.dp)
+
+    val isReadAll = remember(message.readBy, groupMemberCount) {
+        // The sender is not in the readBy list, so we check readBy.size against memberCount - 1
+        message.readBy.size >= groupMemberCount - 1
+    }
 
     Row(
         modifier = rowModifier,
@@ -100,14 +110,28 @@ fun GroupMessageRowItem(
                         color = textColor,
                         maxLines = 10
                     )
-                    Text(
-                        text = formattedTime,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = textColor.copy(alpha = 0.7f),
+                    Row(
                         modifier = Modifier
                             .align(Alignment.End)
-                            .padding(top = 4.dp)
-                    )
+                            .padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formattedTime,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = textColor.copy(alpha = 0.7f),
+                        )
+
+                        if (isSender) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = if (isReadAll) Icons.Default.DoneAll else Icons.Default.Done,
+                                contentDescription = if (isReadAll) "Read by all" else "Sent",
+                                tint = if (isReadAll) Color.Blue else textColor.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -124,7 +148,8 @@ fun GroupMessagesList(
     selectedMessages: Set<GroupMessage>,
     onMessageClick: (GroupMessage) -> Unit,
     onMessageLongClick: (GroupMessage) -> Unit,
-    bringIntoViewRequester: BringIntoViewRequester
+    bringIntoViewRequester: BringIntoViewRequester,
+    groupMemberCount: Int
 ) {
     val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.forLanguageTag("tr-TR"))
     val todayDateString = dateFormat.format(Date())
@@ -166,7 +191,8 @@ fun GroupMessagesList(
                     isSelected = selectedMessages.contains(message),
                     onMessageClick = onMessageClick,
                     onMessageLongClick = onMessageLongClick,
-                    modifier = Modifier
+                    modifier = Modifier,
+                    groupMemberCount = groupMemberCount
                 )
             }
         }

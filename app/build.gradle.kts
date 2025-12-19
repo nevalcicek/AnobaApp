@@ -13,12 +13,21 @@ android {
     namespace = "com.neval.anoba"
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("D:/anahtar/anoba_key.jks")
+            storePassword = "anoba58"
+            keyAlias = "anoba-key"
+            keyPassword = "anoba58"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.neval.anoba"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "2.0.2"
+        versionCode = 8
+        versionName = "2.0.6"
     }
 
     buildTypes {
@@ -28,6 +37,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -68,8 +78,8 @@ dependencies {
     implementation(libs.androidx.ui.text)
     implementation(libs.androidx.ui.util)
     implementation(libs.androidx.ui.tooling.data)
-    implementation(libs.compose.ui)
-    implementation(libs.material3)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.core.splashscreen)
 
     implementation(platform(libs.firebase.bom))
@@ -80,6 +90,8 @@ dependencies {
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.appcheck.ktx)
+    
+    debugImplementation(libs.firebase.appcheck.debug)
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
@@ -101,7 +113,7 @@ dependencies {
     implementation(libs.coil.video)
     implementation(libs.identity.jvm)
 
-    kapt(libs.androidxRoomCompiler)
+    ksp(libs.androidxRoomCompiler)
 
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.accompanist.permissions)
@@ -113,7 +125,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)
     testImplementation(libs.junit)
-    debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.androidx.ui.tooling)
 }
 
 kapt {

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -108,7 +109,11 @@ fun VideoCard(
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center // Center the children
+            ) {
+                // The thumbnail image (in the background)
                 AsyncImage(
                     model = video.videoUrl,
                     imageLoader = imageLoader,
@@ -119,6 +124,16 @@ fun VideoCard(
                         .aspectRatio(16f / 9f)
                         .clip(RoundedCornerShape(12.dp))
                 )
+
+                // The new Play icon (on top of the image)
+                Icon(
+                    imageVector = Icons.Filled.PlayCircleOutline,
+                    contentDescription = "Play Video",
+                    tint = Color.White.copy(alpha = 0.8f), // Semi-transparent white
+                    modifier = Modifier.size(64.dp) // Large and visible
+                )
+
+                // The duration text (at the bottom end)
                 video.duration?.let {
                     Text(
                         text = formatDuration(it),

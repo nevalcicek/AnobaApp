@@ -1,6 +1,8 @@
 package com.neval.anoba.chat.group
 
-import androidx.compose.foundation.Image
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,10 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Search
@@ -58,11 +60,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.neval.anoba.chat.general.GeneralChatUser
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -98,6 +102,14 @@ fun GroupInfoScreen(
     var showConfirmRemoveDialog by remember { mutableStateOf(false) }
 
     var userSearchQuery by remember { mutableStateOf("") }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                groupChatViewModel.updateGroupImage(groupId, it)
+            }
+        }
+    )
 
     LaunchedEffect(groupId) {
         if (groupId.isNotBlank()) {
@@ -199,27 +211,45 @@ fun GroupInfoScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
                         modifier = Modifier
-                            .size(100.dp)
+                            .size(120.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .align(Alignment.CenterHorizontally),
+                            .align(Alignment.CenterHorizontally)
+                            .clickable(enabled = isEditing && group.ownerId == currentUserId) {
+                                imagePickerLauncher.launch("image/*")
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (group.imageUrl != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(model = group.imageUrl),
+                        if (!group.imageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = group.imageUrl,
                                 contentDescription = "Grup Profili",
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.People,
-                                contentDescription = "Varsayılan Grup İkonu",
-                                modifier = Modifier.size(72.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            GroupInitialsAvatar(
+                                name = group.name,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
+
+                        if (isEditing && group.ownerId == currentUserId) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(Color.Black.copy(alpha = 0.4f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AddAPhoto,
+                                    contentDescription = "Resmi Değiştir",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
                     }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     OutlinedTextField(
@@ -467,8 +497,8 @@ private fun UserSelectionDialog(
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(model = user.photoUrl ?: "https://via.placeholder.com/40"),
+                                AsyncImage(
+                                    model = user.photoUrl ?: "https://via.placeholder.com/40",
                                     contentDescription = "${user.displayName} profil resmi",
                                     modifier = Modifier
                                         .size(40.dp)

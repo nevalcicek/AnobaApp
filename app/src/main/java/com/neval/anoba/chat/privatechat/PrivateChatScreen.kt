@@ -2,6 +2,7 @@ package com.neval.anoba.chat.privatechat
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,10 +52,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.neval.anoba.R
 import com.neval.anoba.chat.general.GeneralChatUser
 import com.neval.anoba.common.utils.Constants
 import kotlinx.coroutines.delay
@@ -141,173 +145,183 @@ fun PrivateChatScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            if (isSelectionModeActive) {
-                PrivateSelectionModeTopAppBar(
-                    selectedCount = selectedMessages.size,
-                    onCloseSelectionMode = { privateChatViewModel.clearMessageSelection() },
-                    canDeleteAnySelected = selectedMessages.any { it.senderId == currentUserId },
-                    onDeleteSelected = {
-                        selectedUserForChat?.id?.let { privateChatViewModel.deleteSelectedMessages(it) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.soluk_lavanta1),
+            contentDescription = "Chat background",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Scaffold(
+            topBar = {
+                if (isSelectionModeActive) {
+                    PrivateSelectionModeTopAppBar(
+                        selectedCount = selectedMessages.size,
+                        onCloseSelectionMode = { privateChatViewModel.clearMessageSelection() },
+                        canDeleteAnySelected = selectedMessages.any { it.senderId == currentUserId },
+                        onDeleteSelected = {
+                            selectedUserForChat?.id?.let { privateChatViewModel.deleteSelectedMessages(it) }
+                        },
+                        canCopyAnySelected = selectedMessages.isNotEmpty(),
+                        onCopySelected = { privateChatViewModel.copySelectedMessagesToClipboard(context) },
+                        canEdit = editableMessage != null,
+                        onEditSelected = {
+                            editableMessage?.let { privateChatViewModel.startEditingMessage(it) }
+                            privateChatViewModel.clearMessageSelection() // Seçim modunu kapat
+                        }
+                    )
+                } else {
+                    TopAppBar(title = {
+                        Text(chatPartnerProfile?.safeDisplayName ?: selectedUserForChat?.safeDisplayName ?: "Özel Sohbet")
                     },
-                    canCopyAnySelected = selectedMessages.isNotEmpty(),
-                    onCopySelected = { privateChatViewModel.copySelectedMessagesToClipboard(context) },
-                    canEdit = editableMessage != null,
-                    onEditSelected = {
-                        editableMessage?.let { privateChatViewModel.startEditingMessage(it) }
-                        privateChatViewModel.clearMessageSelection() // Seçim modunu kapat
-                    }
-                )
-            } else {
-                TopAppBar(            title = {
-                    Text(chatPartnerProfile?.safeDisplayName ?: selectedUserForChat?.safeDisplayName ?: "Özel Sohbet")
-                },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            when {
-                                selectedUserForChat != null -> {
-                                    selectedUserForChat = null
-                                    privateChatViewModel.resetChatState()
-                                }
-                                else -> {
-                                    navController.popBackStack()
-                                }
-                            }
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { navController.navigate(Constants.HOME_SCREEN) }) {
-                            Icon(Icons.Filled.Home, contentDescription = "Ana Sayfa")
-                        }
-                    }
-                )
-            }
-        },
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-
-                Box(modifier = Modifier.weight(1f)) {
-                    when (val currentState = uiState) {
-                        is PrivateChatUiState.Loading -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-
-                        is PrivateChatUiState.Success -> {
-                            if (selectedUserForChat == null && !isSelectionModeActive) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Sohbete başlamak için bir kullanıcı seçin.")
-                                }
-                            } else if (currentState.messages.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("${selectedUserForChat?.safeDisplayName ?: "Seçili kullanıcı"} ile henüz mesajınız yok.")
-                                }
-                            } else {
-                                PrivateMessagesList(
-                                    modifier = Modifier.fillMaxSize(),
-                                    messages = sortedMessages,
-                                    listState = listState,
-                                    currentUserId = currentUserId,
-                                    selectedMessages = selectedMessages,
-                                    onMessageClick = { privateChatViewModel.onMessageClicked(it) },
-                                    onMessageLongClick = {
-                                        privateChatViewModel.onMessageLongClicked(
-                                            it
-                                        )
-                                    },
-                                    bringIntoViewRequester = bringIntoViewRequester
-                                )
-                            }
-                        }
-
-                        is PrivateChatUiState.Error -> {
-                            Text(
-                                "Hata: ${currentState.message}",
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (selectedUserForChat != null && !isSelectionModeActive) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .navigationBarsPadding()
-                            .imePadding()
-                    ) {
-                        if (editingMessage != null) {
-                            Text(
-                                text = "Düzenleme modunda: ${editingMessage?.content.orEmpty()}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            TextButton(
-                                onClick = { privateChatViewModel.cancelEditing() },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Düzenlemeyi İptal Et")
-                            }
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextField(
-                                value = messageText,
-                                onValueChange = { privateChatViewModel.updateMessageText(it) },
-                                modifier = Modifier.weight(1f),
-                                placeholder = { Text("Mesajınızı yazın...") },
-                                shape = RoundedCornerShape(24.dp),
-                                colors = TextFieldDefaults.colors(
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    disabledIndicatorColor = Color.Transparent,
-                                    cursorColor = MaterialTheme.colorScheme.primary,
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                maxLines = 4
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = {
-                                    val receiverId = selectedUserForChat!!.id
-                                    val contentToSend = messageText
-                                    if (contentToSend.isNotBlank()) {
-                                        privateChatViewModel.addMessage(receiverId, contentToSend)
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                when {
+                                    selectedUserForChat != null -> {
+                                        selectedUserForChat = null
+                                        privateChatViewModel.resetChatState()
                                     }
-                                },
-                                enabled = messageText.isNotBlank()
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Gönder",
-                                    tint = if (messageText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    else -> {
+                                        navController.popBackStack()
+                                    }
+                                }
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { navController.navigate(Constants.HOME_SCREEN) }) {
+                                Icon(Icons.Filled.Home, contentDescription = "Ana Sayfa")
+                            }
+                        }
+                    )
+                }
+            },
+            containerColor = Color.Transparent,
+            content = { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        when (val currentState = uiState) {
+                            is PrivateChatUiState.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+
+                            is PrivateChatUiState.Success -> {
+                                if (selectedUserForChat == null && !isSelectionModeActive) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("Sohbete başlamak için bir kullanıcı seçin.")
+                                    }
+                                } else if (currentState.messages.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("${selectedUserForChat?.safeDisplayName ?: "Seçili kullanıcı"} ile henüz mesajınız yok.")
+                                    }
+                                } else {
+                                    PrivateMessagesList(
+                                        modifier = Modifier.fillMaxSize(),
+                                        messages = sortedMessages,
+                                        listState = listState,
+                                        currentUserId = currentUserId,
+                                        selectedMessages = selectedMessages,
+                                        onMessageClick = { privateChatViewModel.onMessageClicked(it) },
+                                        onMessageLongClick = {
+                                            privateChatViewModel.onMessageLongClicked(
+                                                it
+                                            )
+                                        },
+                                        bringIntoViewRequester = bringIntoViewRequester
+                                    )
+                                }
+                            }
+
+                            is PrivateChatUiState.Error -> {
+                                Text(
+                                    "Hata: ${currentState.message}",
+                                    modifier = Modifier.padding(16.dp)
                                 )
+                            }
+                        }
+                    }
+
+                    if (selectedUserForChat != null && !isSelectionModeActive) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .navigationBarsPadding()
+                                .imePadding()
+                        ) {
+                            if (editingMessage != null) {
+                                Text(
+                                    text = "Düzenleme modunda: ${editingMessage?.content.orEmpty()}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                TextButton(
+                                    onClick = { privateChatViewModel.cancelEditing() },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text("Düzenlemeyi İptal Et")
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextField(
+                                    value = messageText,
+                                    onValueChange = { privateChatViewModel.updateMessageText(it) },
+                                    modifier = Modifier.weight(1f),
+                                    placeholder = { Text("Mesajınızı yazın...") },
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                        disabledIndicatorColor = Color.Transparent,
+                                        cursorColor = MaterialTheme.colorScheme.primary,
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    maxLines = 4
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(
+                                    onClick = {
+                                        val receiverId = selectedUserForChat!!.id
+                                        val contentToSend = messageText
+                                        if (contentToSend.isNotBlank()) {
+                                            privateChatViewModel.addMessage(receiverId, contentToSend)
+                                        }
+                                    },
+                                    enabled = messageText.isNotBlank()
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Gönder",
+                                        tint = if (messageText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    )
+        )
+    }
 
     if (showUserSelectionDialog) {
         UserSelectionDialog(

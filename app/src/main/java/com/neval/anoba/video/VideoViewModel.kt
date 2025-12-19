@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-
 sealed class VideoUiEvent {
     data class ShowToast(val message: String) : VideoUiEvent()
 }
@@ -91,20 +90,17 @@ class VideoViewModel(
             }
         }
     }
-
     fun deleteVideo(videoId: String) {
         viewModelScope.launch {
             videoRepository.deleteVideo(videoId)
         }
     }
-
     fun toggleReaction(videoId: String, emoji: String) {
         val currentUserId = userId
         if (currentUserId.isBlank()) {
             viewModelScope.launch { _eventFlow.emit(VideoUiEvent.ShowToast("Tepki vermek için lütfen giriş yapın.")) }
             return
         }
-
         viewModelScope.launch {
             val oldReactions = _userReactions.value
             val userPreviousReaction = oldReactions[videoId]
@@ -128,7 +124,6 @@ class VideoViewModel(
             }
         }
     }
-
     fun incrementViewCount(videoId: String) {
         viewModelScope.launch {
             videoRepository.incrementViewCount(videoId)

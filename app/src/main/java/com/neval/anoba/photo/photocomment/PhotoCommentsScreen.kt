@@ -223,7 +223,7 @@ fun PhotoCommentsScreen(
                                 canDelete = canDelete,
                                 onLikeClicked = { viewModel.likeComment(mainComment.id) },
                                 onReplyClicked = { viewModel.onReplyClicked(mainComment) },
-                                onDeleteClicked = { viewModel.deleteComment(mainComment) }
+                                onDeleteClicked = { viewModel.deleteComment(mainComment, userRole) }
                             )
                         }
                         items(commentTree[mainComment].orEmpty(), key = { "reply_${it.id}" }) { reply ->
@@ -237,7 +237,7 @@ fun PhotoCommentsScreen(
                                     canDelete = canDelete,
                                     onLikeClicked = { viewModel.likeComment(reply.id) },
                                     onReplyClicked = { viewModel.onReplyClicked(mainComment) }, // Yanıta yanıt vermek, ana yoruma yanıt başlatır
-                                    onDeleteClicked = { viewModel.deleteComment(reply) }
+                                    onDeleteClicked = { viewModel.deleteComment(reply, userRole) }
                                 )
                             }
                         }

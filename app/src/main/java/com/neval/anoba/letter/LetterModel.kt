@@ -1,8 +1,11 @@
 package com.neval.anoba.letter
 
+import android.os.Parcelable
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class LetterModel(
     @DocumentId var id: String = "",
     var ownerId: String = "",
@@ -18,4 +21,4 @@ data class LetterModel(
     var privacy: String = "PUBLIC", // Mektup gizliliği: PUBLIC, SEALED
     var recipientId: String? = null, // Alıcı ID'si (mühürlü ise)
     var recipientUsername: String? = null // Alıcı kullanıcı adı (mühürlü ise)
-)
+) : Parcelable

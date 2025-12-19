@@ -106,18 +106,22 @@ class PhotoCommentViewModel(
         }
     }
 
-    fun deleteComment(comment: PhotoComment) {
+    fun deleteComment(comment: PhotoComment, userRole: String?) {
         val authState = authService.authStateFlow.value
-        if (authState is AuthState.Authenticated && authState.uid == comment.userId) {
-            viewModelScope.launch {
-                try {
-                    repository.deleteComment(photoId, comment.id)
-                } catch (e: Exception) {
-                    _error.value = "Yorum silinirken bir hata oluştu: ${e.message}"
+        if (authState is AuthState.Authenticated) {
+            if (authState.uid == comment.userId || userRole == "ADMIN") {
+                viewModelScope.launch {
+                    try {
+                        repository.deleteComment(photoId, comment.id)
+                    } catch (e: Exception) {
+                        _error.value = "Yorum silinirken bir hata oluştu: ${e.message}"
+                    }
                 }
+            } else {
+                _error.value = "Bu yorumu silme yetkiniz yok."
             }
         } else {
-            _error.value = "Bu yorumu silme yetkiniz yok."
+            _error.value = "Bu işlemi yapmak için giriş yapmalısınız."
         }
     }
 }

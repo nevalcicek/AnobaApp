@@ -108,7 +108,7 @@ class PhotoViewModel(
 
             try {
                 reactionRepository.toggleReaction(currentUserId, photoId, emoji)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _userReactions.value = oldReactions
             }
         }

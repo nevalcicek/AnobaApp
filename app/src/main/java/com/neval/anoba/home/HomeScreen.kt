@@ -1,25 +1,30 @@
 package com.neval.anoba.home
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.CameraAlt
@@ -39,6 +44,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -55,9 +62,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -76,8 +86,10 @@ import com.neval.anoba.ses.SesCard
 import com.neval.anoba.ses.SesViewModel
 import com.neval.anoba.video.VideoCard
 import com.neval.anoba.video.VideoViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -92,7 +104,18 @@ fun HomeScreen(
 ) {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
+    val density = LocalDensity.current
+    val bottomSheetState = remember {
+        SheetState(
+            skipPartiallyExpanded = false,
+            density = density,
+            initialValue = SheetValue.PartiallyExpanded,
+            skipHiddenState = false
+        )
+    }
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = bottomSheetState
+    )
 
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
@@ -125,9 +148,8 @@ fun HomeScreen(
 
     val listState = rememberLazyListState()
     var showSearchDialog by remember { mutableStateOf(false) }
-    var showEntryDialog by remember { mutableStateOf(false) }
-    var startPoliceAnimation by remember { mutableStateOf(false) }
-    
+    var startFlowerRainAnimation by remember { mutableStateOf(false) }
+
     val redContainer = Color(0xFFFFEBEE)
     val redIcon = Color(0xFFD32F2F)
     val purpleContainer = Color(0xFFF3E5F5)
@@ -155,53 +177,21 @@ fun HomeScreen(
                         TopAppBar(
                             title = { },
                             navigationIcon = {
-                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                    Icon(Icons.Filled.Menu, contentDescription = "Menü")
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                        Icon(Icons.Filled.Menu, contentDescription = "Menü")
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(start = 4.dp, end = 8.dp)
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Magenta)
+                                            .clickable { startFlowerRainAnimation = true }
+                                    )
                                 }
                             },
                             actions = {
-                                Card(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable { startPoliceAnimation = true },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (startPoliceAnimation) Color.Red else Color(0xFFE3F2FD)
-                                    )
-                                ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.polis_karakolu),
-                                            contentDescription = "Polis",
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Card(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable { showEntryDialog = true },
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
-                                ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.dur_el),
-                                            contentDescription = "Girilmez",
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
                                 IconButton(onClick = { showSearchDialog = true }) {
                                     Icon(Icons.Filled.Search, contentDescription = "Ara")
                                 }
@@ -212,84 +202,85 @@ fun HomeScreen(
                             AlertDialog(
                                 onDismissRequest = { showSearchDialog = false },
                                 confirmButton = {
-                                    TextButton(onClick = { showSearchDialog = false }) { Text("Tamam") }
+                                    TextButton(onClick = {
+                                        showSearchDialog = false
+                                    }) { Text("Tamam") }
                                 },
                                 title = { Text("Yapım Aşamasında") },
                                 text = { Text("Arama özelliği henüz aktif değil.") }
                             )
                         }
 
-                        if (showEntryDialog) {
-                            AlertDialog(
-                                onDismissRequest = { showEntryDialog = false },
-                                confirmButton = {
-                                    TextButton(onClick = { showEntryDialog = false }) { Text("Tamam") }
-                                },
-                                title = { Text("Girilmez") },
-                                text = { Text("Bu giriş şu anda kapalı.") }
-                            )
-                        }
-
-                        HorizontalDivider(Modifier.fillMaxWidth(), color = Color.LightGray, thickness = 1.dp)
+                        HorizontalDivider(
+                            Modifier.fillMaxWidth(),
+                            color = Color.LightGray,
+                            thickness = 1.dp
+                        )
 
                         // Quick Access Buttons
                         LazyRow(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
                         ) {
                             item {
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.VIDEO_NAV_GRAPH) },
-                                    icon = Icons.Filled.Videocam, 
+                                    icon = Icons.Filled.Videocam,
                                     contentDescription = "Videolar",
-                                    cardColor = purpleContainer, 
+                                    cardColor = purpleContainer,
                                     iconColor = purpleIcon
                                 )
                             }
                             item {
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.PHOTO_NAV_GRAPH) },
-                                    icon = Icons.Filled.CameraAlt, 
+                                    icon = Icons.Filled.CameraAlt,
                                     contentDescription = "Fotoğraflar",
-                                    cardColor = redContainer, 
+                                    cardColor = redContainer,
                                     iconColor = redIcon
                                 )
                             }
                             item {
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.SES_NAV_GRAPH) },
-                                    icon = Icons.Filled.Mic, 
+                                    icon = Icons.Filled.Mic,
                                     contentDescription = "Ses Kayıtları",
-                                    cardColor = Color(0xFFFFF3E0), 
+                                    cardColor = Color(0xFFFFF3E0),
                                     iconColor = Color(0xFFE65100)
                                 )
                             }
                             item {
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.LETTER_NAV_GRAPH) },
-                                    icon = Icons.Filled.Edit, 
+                                    icon = Icons.Filled.Edit,
                                     contentDescription = "Mektuplar",
-                                    cardColor = Color(0xFFE3F2FD), 
+                                    cardColor = Color(0xFFE3F2FD),
                                     iconColor = Color(0xFF1976D2)
                                 )
                             }
                             item {
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.CHAT_NAV_GRAPH) },
-                                    icon = Icons.AutoMirrored.Filled.Chat, 
+                                    icon = Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = "Chat",
-                                    cardColor = Color(0xFFE8F5E9), 
+                                    cardColor = Color(0xFFE8F5E9),
                                     iconColor = Color(0xFF388E3C)
                                 )
                             }
                         }
 
-                        HorizontalDivider(Modifier.fillMaxWidth(), color = Color.LightGray, thickness = 1.dp)
+                        HorizontalDivider(
+                            Modifier.fillMaxWidth(),
+                            color = Color.LightGray,
+                            thickness = 1.dp
+                        )
                     }
                 }
             ) { innerPadding ->
-                // Değişiklik burada: Column -> Box
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -298,14 +289,18 @@ fun HomeScreen(
                     // 1. Ana içerik (altta kalacak katman)
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize().animateContentSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .animateContentSize(),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         if (allContentItems.isEmpty()) {
                             item {
                                 Box(
-                                    modifier = Modifier.fillParentMaxSize().padding(16.dp),
+                                    modifier = Modifier
+                                        .fillParentMaxSize()
+                                        .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -319,25 +314,37 @@ fun HomeScreen(
                             items(items = allContentItems, key = { it.id }) { contentItem ->
                                 when (contentItem) {
                                     is ContentItem.PhotoContent -> {
-                                        val canDelete = currentUserId == contentItem.photo.ownerId || userRole == "ADMIN"
+                                        val canDelete =
+                                            currentUserId == contentItem.photo.ownerId || userRole == "ADMIN"
                                         PhotoCard(
-                                            photo = contentItem.photo, navController = navController,
+                                            photo = contentItem.photo,
+                                            navController = navController,
                                             canDelete = canDelete,
-                                            onDeleteClicked = { photoViewModel.deletePhoto(contentItem.photo.id) },
+                                            onDeleteClicked = {
+                                                photoViewModel.deletePhoto(
+                                                    contentItem.photo.id
+                                                )
+                                            },
                                             isCommentSectionClickable = false
                                         )
                                     }
+
                                     is ContentItem.LetterContent -> {
                                         Box(modifier = Modifier.padding(horizontal = 12.dp)) {
                                             LetterCard(
-                                                letter = contentItem.letter, navController = navController,
-                                                currentUserId = currentUserId ?: "", userRole = userRole,
-                                                isCommentSectionClickable = false, showContentPreview = true
+                                                letter = contentItem.letter,
+                                                navController = navController,
+                                                currentUserId = currentUserId ?: "",
+                                                userRole = userRole,
+                                                isCommentSectionClickable = false,
+                                                showContentPreview = true
                                             )
                                         }
                                     }
+
                                     is ContentItem.AudioContent -> {
-                                        val canDelete = currentUserId == contentItem.audio.ownerId || userRole == "ADMIN"
+                                        val canDelete =
+                                            currentUserId == contentItem.audio.ownerId || userRole == "ADMIN"
                                         SesCard(
                                             ses = contentItem.audio, navController = navController,
                                             canDelete = canDelete,
@@ -345,15 +352,25 @@ fun HomeScreen(
                                             isCommentSectionClickable = false, showPlayIcon = false
                                         )
                                     }
+
                                     is ContentItem.VideoContent -> {
-                                        val canDelete = currentUserId == contentItem.video.ownerId || userRole == "ADMIN"
+                                        val canDelete =
+                                            currentUserId == contentItem.video.ownerId || userRole == "ADMIN"
                                         VideoCard(
-                                            video = contentItem.video, navController = navController,
+                                            video = contentItem.video,
+                                            navController = navController,
                                             canDelete = canDelete,
-                                            onDeleteClicked = { videoViewModel.deleteVideo(contentItem.video.id) },
+                                            onDeleteClicked = {
+                                                videoViewModel.deleteVideo(
+                                                    contentItem.video.id
+                                                )
+                                            },
                                             onClick = {
                                                 navController.navigate(
-                                                    Constants.VIDEO_DETAIL_SCREEN.replace("{videoId}", contentItem.video.id)
+                                                    Constants.VIDEO_DETAIL_SCREEN.replace(
+                                                        "{videoId}",
+                                                        contentItem.video.id
+                                                    )
                                                 )
                                             },
                                             isCommentSectionClickable = false
@@ -364,41 +381,13 @@ fun HomeScreen(
                         }
                     }
 
-                    // Animasyon (üstte kalacak katman)
-                    if (startPoliceAnimation) {
-                        // POLİS LİSTESİ
-                        val polisImages = listOf(
-                            R.drawable.polis_2, R.drawable.polis_3,
-                            R.drawable.polis_4, R.drawable.polis_motorsiklet3,
-                            R.drawable.polis_3, R.drawable.polis_4,
-                            R.drawable.polis_araba2, R.drawable.polis_5,
-                            R.drawable.polis_4, R.drawable.polis_6,
-                            R.drawable.polis_araba2, R.drawable.polis_7,
-                            R.drawable.polis_6, R.drawable.polis_8,
-                            R.drawable.polis_7, R.drawable.polis_9,
-                            R.drawable.polis_8, R.drawable.polis_10,
-                            R.drawable.polis_araba2,R.drawable.polis_11,
-                            R.drawable.polis_minibus1, R.drawable.polis_4,
-                            R.drawable.polis_motorsiklet, R.drawable.polis_2,
-                            R.drawable.polis_motorsiklet3, R.drawable.polis_3,
-                            R.drawable.polis_11, R.drawable.polis_12,
-
-
-                        ).shuffled()
-
-                        polisImages.forEachIndexed { index, imageRes ->
-                            PolisAnim(
-                                imageRes = imageRes,
-                                maxWidth = screenMaxWidth, maxHeight = screenMaxHeight,
-                                startDelay = (index * 200L),
-                                animationDuration = (2000..4000).random().toLong(),
-                                onFinished = {
-                                    if (index == polisImages.lastIndex) {
-                                        startPoliceAnimation = false
-                                    }
-                                }
-                            )
-                        }
+                    // Çiçek Yağmuru Animasyonu
+                    if (startFlowerRainAnimation) {
+                        FlowerRainAnimation(
+                            maxWidth = screenMaxWidth,
+                            maxHeight = screenMaxHeight,
+                            onFinished = { startFlowerRainAnimation = false }
+                        )
                     }
                 }
             }
@@ -415,7 +404,7 @@ fun IconInCardButton(
     cardColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     iconSize: Dp = 24.dp,
-    cardShape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    cardShape: Shape = CircleShape,
     cardElevationDefaults: CardElevation = CardDefaults.cardElevation(2.dp)
 ) {
     Card(
@@ -439,4 +428,88 @@ fun IconInCardButton(
             )
         }
     }
+}
+
+@Composable
+fun FlowerRainAnimation(
+    maxWidth: Dp,
+    maxHeight: Dp,
+    onFinished: () -> Unit
+) {
+    val allFlowerImages = remember {
+        listOf(
+            R.drawable.cicek_1, R.drawable.cicek_2, R.drawable.cicek_3,
+            R.drawable.cicek_4, R.drawable.cicek_5, R.drawable.cicek_6, R.drawable.cicek_16,
+            R.drawable.cicek_7, R.drawable.cicek_8, R.drawable.cicek_9,
+            R.drawable.cicek_10, R.drawable.cicek_11, R.drawable.cicek_12,
+            R.drawable.cicek_13, R.drawable.cicek_14, R.drawable.cicek_15,
+            R.drawable.cicek_16
+        ).shuffled()
+    }
+    val imagesToAnimate = remember {
+        (0..20).map { allFlowerImages.random() }
+    }
+
+    imagesToAnimate.forEachIndexed { index, imageRes ->
+        FlowerRainParticle(
+            imageRes = imageRes,
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            startDelay = (index * 100L),
+            animationDuration = (4000L..8000L).random(),
+            onFinished = {
+                if (index == imagesToAnimate.lastIndex) {
+                    onFinished()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun FlowerRainParticle(
+    imageRes: Int,
+    maxWidth: Dp,
+    maxHeight: Dp,
+    startDelay: Long,
+    animationDuration: Long,
+    onFinished: () -> Unit
+) {
+    var isVisible by remember { mutableStateOf(false) }
+
+    val startX = remember { (Random.nextFloat() * maxWidth.value).dp }
+    val startY = remember { (-20..0).random().dp }
+
+    val targetY = maxHeight + 100.dp
+
+    val currentY by animateDpAsState(
+        targetValue = if (isVisible) targetY else startY,
+        animationSpec = tween(durationMillis = animationDuration.toInt(), easing = LinearEasing),
+        label = "flower_y_offset"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 1000),
+        label = "flower_alpha"
+    )
+
+    // Titremeyi önlemek ve boyutu ayarlamak için animasyon başında bir kere boyut ata
+    val imageSize = remember { (24..40).random().dp }
+
+    LaunchedEffect(Unit) {
+        delay(startDelay)
+        isVisible = true
+        delay(animationDuration)
+        onFinished()
+    }
+
+    Image(
+        painter = painterResource(id = imageRes),
+        contentDescription = "Çiçek",
+        modifier = Modifier
+            .offset(x = startX, y = currentY)
+            .size(imageSize)
+            .alpha(alpha)
+    )
 }

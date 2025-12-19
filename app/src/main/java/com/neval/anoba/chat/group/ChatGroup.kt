@@ -15,9 +15,10 @@ data class ChatGroup(
     var isPrivate: Boolean = false,
     var members: List<String> = emptyList(),
     var imageUrl: String? = null,
+    val typingUsers: Map<String, String> = emptyMap(),
     @ServerTimestamp
     var createdAt: Date? = null
 ) {
     @Suppress("unused")
-    constructor() : this("", "", "", "", false, emptyList(), null, null)
+    constructor() : this("", "", "", "", false, emptyList(), null, emptyMap(), null)
 }

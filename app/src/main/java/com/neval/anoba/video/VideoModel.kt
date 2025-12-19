@@ -1,7 +1,10 @@
 package com.neval.anoba.video
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import java.util.Date
 
+@Parcelize
 data class VideoModel(
     val id: String = "",
     val videoUrl: String = "",
@@ -15,4 +18,4 @@ data class VideoModel(
     val thumbnailUrl: String? = null,
     val duration: Long? = null,
     val viewCount: Long = 0
-)
+) : Parcelable

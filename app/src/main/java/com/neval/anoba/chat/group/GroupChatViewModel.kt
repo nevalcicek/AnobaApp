@@ -1,6 +1,7 @@
 package com.neval.anoba.chat.group
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -11,7 +12,9 @@ import com.neval.anoba.common.repository.IUserRepository
 import com.neval.anoba.models.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +53,8 @@ class GroupChatViewModel(
 
     private val _isMuted = MutableStateFlow(false)
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
+
+    private var typingJob: Job? = null
 
     val currentGroupMessages: StateFlow<List<GroupMessage>> = activeGroup.flatMapLatest { group ->
         group?.id?.let { groupId ->
@@ -161,9 +166,66 @@ class GroupChatViewModel(
             groupChatRepository.updateGroupName(groupId, newName)
         }
     }
+    fun updateGroupImage(groupId: String, imageUri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val imageUrl = groupChatRepository.uploadGroupImage(groupId, imageUri)
+                groupChatRepository.updateGroupImageUrl(groupId, imageUrl)
+
+                // Update local state to reflect the change immediately
+                val currentGroup = _activeGroup.value
+                if (currentGroup != null && currentGroup.id == groupId) {
+                    _activeGroup.value = currentGroup.copy(imageUrl = imageUrl)
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Grup resmi güncellenemedi: ${e.message}"
+                Log.e(LOCAL_TAG, "Failed to update group image", e)
+            }
+        }
+    }
 
     fun updateMessageText(newText: String) {
         _messageText.value = newText
+        updateTypingStatus(true)
+        typingJob?.cancel()
+        typingJob = viewModelScope.launch {
+            delay(2000) // 2 saniye bekle
+            updateTypingStatus(false)
+        }
+    }
+
+    fun onMessageSent() {
+        typingJob?.cancel()
+        updateTypingStatus(false)
+    }
+
+    private fun updateTypingStatus(isTyping: Boolean) {
+        val groupId = activeGroup.value?.id ?: return
+        val userId = currentUserId ?: return
+        val userName = currentUserDisplayName
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                groupChatRepository.updateTypingStatus(groupId, userId, userName, isTyping)
+            } catch (e: Exception) {
+                Log.e(LOCAL_TAG, "Error updating typing status", e)
+            }
+        }
+    }
+
+    fun markMessagesAsRead(messageIds: List<String>) {
+        val groupId = activeGroup.value?.id ?: return
+        val userId = currentUserId ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            messageIds.forEach {
+                try {
+                    groupChatRepository.markMessageAsRead(groupId, it, userId)
+                } catch (e: Exception) {
+                    Log.e(LOCAL_TAG, "Error marking message $it as read", e)
+                }
+            }
+        }
     }
 
     fun deleteGroup(groupId: String) {
