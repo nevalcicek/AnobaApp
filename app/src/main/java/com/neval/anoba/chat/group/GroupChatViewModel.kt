@@ -9,7 +9,6 @@ import com.google.firebase.auth.FirebaseUser
 import com.neval.anoba.chat.general.GeneralChatUser
 import com.neval.anoba.chat.group.GroupUtils.copyToClipboard
 import com.neval.anoba.common.repository.IUserRepository
-import com.neval.anoba.models.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -250,22 +249,24 @@ class GroupChatViewModel(
         }
     }
 
-    fun loadAllUsers() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val usersFromRepo: List<User> = userRepository.getAllUsers()
-                val chatUsers = usersFromRepo.map { user ->
-                    GeneralChatUser(
-                        id = user.uid,
-                        displayName = user.displayName,
-                        email = user.email,
-                        photoUrl = user.photoURL ?: ""
-                    )
+    private fun loadAllUsers() {
+        viewModelScope.launch {
+            userRepository.getAllUsersStream()
+                .catch { e ->
+                    Log.e(LOCAL_TAG, "Error loading all users from stream", e)
+                    _errorMessage.value = "Kullanıcı listesi alınamadı."
                 }
-                _allUsers.value = chatUsers
-            } catch (e: Exception) {
-                Log.e(LOCAL_TAG, "Error loading all users", e)
-            }
+                .collect { usersFromRepo ->
+                    val chatUsers = usersFromRepo.map { user ->
+                        GeneralChatUser(
+                            id = user.uid,
+                            displayName = user.displayName,
+                            email = user.email,
+                            photoUrl = user.photoURL ?: ""
+                        )
+                    }
+                    _allUsers.value = chatUsers
+                }
         }
     }
 

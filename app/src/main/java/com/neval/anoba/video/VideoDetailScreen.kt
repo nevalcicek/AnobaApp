@@ -1,6 +1,9 @@
 package com.neval.anoba.video
 
+import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,8 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +31,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.common.utils.DateTimeUtils
 import com.neval.anoba.common.viewmodel.AuthViewModel
+import com.neval.anoba.photo.ShareState
 import com.neval.anoba.video.videoemoji.VideoEmojiReactionRow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -54,12 +56,41 @@ fun VideoDetailScreen(
 ) {
     val video by videoViewModel.videoDetails.collectAsState()
     val userReactions by videoViewModel.userReactions.collectAsState()
+    val shareState by videoViewModel.shareState.collectAsState()
 
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    
+    val shareLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult() 
+    ) { }
+
+    LaunchedEffect(shareState) {
+        when (val state = shareState) {
+            is ShareState.Success -> {
+                val shareIntent: Intent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, state.uri)
+                    type = "video/mp4"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(shareIntent, "Videoyu paylaş...")
+                shareLauncher.launch(chooser)
+                videoViewModel.resetShareState()
+            }
+            is ShareState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                videoViewModel.resetShareState()
+            }
+            is ShareState.Processing -> {
+                Toast.makeText(context, "Paylaşım için hazırlanıyor...", Toast.LENGTH_SHORT).show()
+            }
+            ShareState.Idle -> { }
+        }
+    }
 
     LaunchedEffect(videoId) {
         videoViewModel.loadVideoDetails(videoId)
@@ -149,6 +180,13 @@ fun VideoDetailScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                             if (shareState !is ShareState.Processing) { 
+                                videoViewModel.shareVideo(context, currentVideo.videoUrl, currentVideo.id)
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Paylaş")
+                        }
                         IconButton(onClick = {
                             navController.navigate(Constants.HOME_SCREEN) {
                                 popUpTo(navController.graph.findStartDestination().id) {

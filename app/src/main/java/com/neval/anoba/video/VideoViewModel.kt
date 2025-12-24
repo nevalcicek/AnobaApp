@@ -1,10 +1,12 @@
 package com.neval.anoba.video
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neval.anoba.common.services.AuthServiceInterface
 import com.neval.anoba.login.state.AuthState
+import com.neval.anoba.photo.ShareState
 import com.neval.anoba.video.videoemoji.VideoEmojiReactionRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+
 sealed class VideoUiEvent {
     data class ShowToast(val message: String) : VideoUiEvent()
 }
@@ -35,6 +38,9 @@ class VideoViewModel(
 
     private val _eventFlow = MutableSharedFlow<VideoUiEvent>()
     val eventFlow = _eventFlow.asSharedFlow()
+    
+    private val _shareState = MutableStateFlow<ShareState>(ShareState.Idle)
+    val shareState: StateFlow<ShareState> = _shareState.asStateFlow()
 
     val userId: String get() = authService.getCurrentUserId()
 
@@ -128,5 +134,21 @@ class VideoViewModel(
         viewModelScope.launch {
             videoRepository.incrementViewCount(videoId)
         }
+    }
+
+    fun shareVideo(context: Context, videoUrl: String, videoId: String) {
+        viewModelScope.launch {
+            _shareState.value = ShareState.Processing
+            try {
+                val uri = videoRepository.getVideoUriForSharing(context, videoUrl, videoId)
+                _shareState.value = ShareState.Success(uri)
+            } catch (e: Exception) {
+                _shareState.value = ShareState.Error(e.message ?: "Video paylaşılırken bir hata oluştu.")
+            }
+        }
+    }
+
+    fun resetShareState() {
+        _shareState.value = ShareState.Idle
     }
 }

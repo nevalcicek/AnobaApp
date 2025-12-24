@@ -1,6 +1,7 @@
 package com.neval.anoba.di
 
 import android.util.Log
+import androidx.media3.common.util.UnstableApi
 import coil.ImageLoader
 import coil.decode.VideoFrameDecoder
 import com.google.firebase.auth.FirebaseAuth
@@ -42,6 +43,8 @@ import com.neval.anoba.ses.SesViewModel
 import com.neval.anoba.ses.sescomment.SesCommentRepository
 import com.neval.anoba.ses.sescomment.SesCommentViewModel
 import com.neval.anoba.ses.sesemoji.SesEmojiReactionRepository
+import com.neval.anoba.video.CameraViewModel
+import com.neval.anoba.video.VideoEditViewModel
 import com.neval.anoba.video.VideoRepository
 import com.neval.anoba.video.VideoViewModel
 import com.neval.anoba.video.videocomment.VideoCommentRepository
@@ -54,6 +57,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
+@androidx.annotation.OptIn(UnstableApi::class)
 fun createAppModuleDefinition(
     authInstance: FirebaseAuth,
     firestoreInstance: FirebaseFirestore,
@@ -133,6 +137,8 @@ fun createAppModuleDefinition(
     // Video ViewModels
     viewModel { VideoViewModel(get(), get(), get()) }
     viewModel { params -> VideoCommentViewModel(params.get(), get(), get()) }
+    viewModel { VideoEditViewModel() }
+    viewModel { CameraViewModel() }
 
     // Diğer ViewModels
     viewModel { LiveStreamViewModel() }

@@ -19,7 +19,8 @@ fun MyAppNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Constants.LOGIN_NAV_GRAPH
+        startDestination = Constants.LOGIN_NAV_GRAPH,
+        route = Constants.ROOT_GRAPH
     ) {
         loginNavGraph(navController)
         drawerNavGraph(navController)

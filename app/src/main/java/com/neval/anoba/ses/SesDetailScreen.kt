@@ -1,6 +1,9 @@
 package com.neval.anoba.ses
 
+import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -71,6 +75,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.common.utils.DateTimeUtils
 import com.neval.anoba.common.viewmodel.AuthViewModel
+import com.neval.anoba.photo.ShareState
 import com.neval.anoba.ses.sescomment.SesCommentViewModel
 import com.neval.anoba.ses.sesemoji.SesEmojiReactionRow
 import kotlinx.coroutines.delay
@@ -140,6 +145,7 @@ fun SesDetailScreen(
     val userReactions by viewModel.userReactions.collectAsState()
     val comments by commentViewModel.comments.collectAsState()
     val sesDeleted by viewModel.sesDeleted.collectAsState()
+    val shareState by viewModel.shareState.collectAsState()
     
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
@@ -148,6 +154,34 @@ fun SesDetailScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+    
+    val shareLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult() 
+    ) { }
+
+    LaunchedEffect(shareState) {
+        when (val state = shareState) {
+            is ShareState.Success -> {
+                val shareIntent: Intent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, state.uri)
+                    type = "audio/m4a"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(shareIntent, "Sesi paylaş...")
+                shareLauncher.launch(chooser)
+                viewModel.resetShareState()
+            }
+            is ShareState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                viewModel.resetShareState()
+            }
+            is ShareState.Processing -> {
+                Toast.makeText(context, "Paylaşım için hazırlanıyor...", Toast.LENGTH_SHORT).show()
+            }
+            ShareState.Idle -> { }
+        }
+    }
 
     LaunchedEffect(sesId) {
         viewModel.loadSesDetails(sesId)
@@ -241,6 +275,13 @@ fun SesDetailScreen(
                             }
                         },
                         actions = {
+                            IconButton(onClick = { 
+                                if (shareState !is ShareState.Processing) { 
+                                    viewModel.shareSes(context, currentSes.audioUrl, currentSes.id)
+                                }
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = "Paylaş")
+                            }
                             IconButton(onClick = { 
                                 navController.navigate(Constants.HOME_SCREEN) {
                                     popUpTo(navController.graph.findStartDestination().id) {

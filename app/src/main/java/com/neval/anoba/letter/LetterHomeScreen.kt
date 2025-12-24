@@ -112,7 +112,6 @@ fun LetterHomeScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        viewModel.loadAllUsers() // Kullanıcıları yükle
                         showPrivacyDialog = false
                         showRecipientDialog = true
                     }

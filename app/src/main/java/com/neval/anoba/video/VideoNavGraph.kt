@@ -8,6 +8,8 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.video.videocomment.VideoCommentsScreen
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 fun NavGraphBuilder.videoNavGraph(navController: NavController) {
     navigation(
@@ -16,6 +18,10 @@ fun NavGraphBuilder.videoNavGraph(navController: NavController) {
     ) {
         composable(Constants.VIDEO_HOME_SCREEN) {
             VideoHomeScreen(navController = navController)
+        }
+
+        composable(Constants.VIDEO_CAMERA_SCREEN) {
+            CameraScreen(navController = navController)
         }
 
         composable(
@@ -46,6 +52,18 @@ fun NavGraphBuilder.videoNavGraph(navController: NavController) {
             } else {
                 navController.popBackStack()
             }
+        }
+        
+        composable(
+            route = Constants.VIDEO_EDIT_SCREEN,
+            arguments = listOf(navArgument("videoUri") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedUri = backStackEntry.arguments?.getString("videoUri") ?: ""
+            val videoUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+            VideoEditScreen(
+                navController = navController,
+                videoUri = videoUri
+            )
         }
     }
 }

@@ -103,7 +103,7 @@ fun HomeScreen(
     videoViewModel: VideoViewModel = koinViewModel()
 ) {
     val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val density = LocalDensity.current
     val bottomSheetState = remember {
         SheetState(
@@ -120,7 +120,7 @@ fun HomeScreen(
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
 
-    // Load initial data for all content types
+    // Tüm içerik türleri için başlangıç verilerini yükle
     LaunchedEffect(key1 = Unit) {
         letterViewModel.loadInitialData()
         photoViewModel.loadInitialData()
@@ -128,13 +128,13 @@ fun HomeScreen(
         sesViewModel.loadSesler()
     }
 
-    // Collect states from ViewModels
+    // ViewModel'lerden gelen durumları topla
     val letters by letterViewModel.letters.collectAsState()
     val photos by photoViewModel.photos.collectAsState()
     val audios by sesViewModel.sesler.collectAsState()
     val videos by videoViewModel.videos.collectAsState()
 
-    // Combine all content into a single, sorted list
+    // Tüm içeriği tek, sıralanmış bir listede birleştir
     val allContentItems by remember(photos, letters, audios, videos) {
         derivedStateOf {
             val photoItems = photos.map { ContentItem.PhotoContent(it) }
@@ -149,6 +149,13 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     var showSearchDialog by remember { mutableStateOf(false) }
     var startFlowerRainAnimation by remember { mutableStateOf(false) }
+
+    // İçerik listesi yüklendiğinde veya değiştiğinde listenin en başına kaydırır.
+    LaunchedEffect(allContentItems) {
+        if (allContentItems.isNotEmpty()) {
+            listState.animateScrollToItem(index = 0)
+        }
+    }
 
     val redContainer = Color(0xFFFFEBEE)
     val redIcon = Color(0xFFD32F2F)
@@ -217,7 +224,7 @@ fun HomeScreen(
                             thickness = 1.dp
                         )
 
-                        // Quick Access Buttons
+                        // Hızlı Erişim Butonları
                         LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -265,7 +272,7 @@ fun HomeScreen(
                                 IconInCardButton(
                                     onClick = { navController.navigate(Constants.CHAT_NAV_GRAPH) },
                                     icon = Icons.AutoMirrored.Filled.Chat,
-                                    contentDescription = "Chat",
+                                    contentDescription = "Sohbet",
                                     cardColor = Color(0xFFE8F5E9),
                                     iconColor = Color(0xFF388E3C)
                                 )
@@ -278,119 +285,113 @@ fun HomeScreen(
                             thickness = 1.dp
                         )
                     }
-                }
-            ) { innerPadding ->
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    // 1. Ana içerik (altta kalacak katman)
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .animateContentSize(),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        if (allContentItems.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillParentMaxSize()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "Henüz görüntülenecek bir içerik yok.",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = Color.Gray
-                                    )
-                                }
-                            }
-                        } else {
-                            items(items = allContentItems, key = { it.id }) { contentItem ->
-                                when (contentItem) {
-                                    is ContentItem.PhotoContent -> {
-                                        val canDelete =
-                                            currentUserId == contentItem.photo.ownerId || userRole == "ADMIN"
-                                        PhotoCard(
-                                            photo = contentItem.photo,
-                                            navController = navController,
-                                            canDelete = canDelete,
-                                            onDeleteClicked = {
-                                                photoViewModel.deletePhoto(
-                                                    contentItem.photo.id
-                                                )
-                                            },
-                                            isCommentSectionClickable = false
+                },
+                content = { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .animateContentSize(),
+                            contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            if (allContentItems.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillParentMaxSize()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "Henüz görüntülenecek bir içerik yok.",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = Color.Gray
                                         )
                                     }
-
-                                    is ContentItem.LetterContent -> {
-                                        Box(modifier = Modifier.padding(horizontal = 12.dp)) {
-                                            LetterCard(
-                                                letter = contentItem.letter,
+                                }
+                            } else {
+                                items(items = allContentItems, key = { it.id }) { contentItem ->
+                                    when (contentItem) {
+                                        is ContentItem.PhotoContent -> {
+                                            val canDelete =
+                                                currentUserId == contentItem.photo.ownerId || userRole == "ADMIN"
+                                            PhotoCard(
+                                                photo = contentItem.photo,
                                                 navController = navController,
-                                                currentUserId = currentUserId ?: "",
-                                                userRole = userRole,
-                                                isCommentSectionClickable = false,
-                                                showContentPreview = true
+                                                canDelete = canDelete,
+                                                onDeleteClicked = {
+                                                    photoViewModel.deletePhoto(
+                                                        contentItem.photo.id
+                                                    )
+                                                },
+                                                isCommentSectionClickable = false
                                             )
                                         }
-                                    }
 
-                                    is ContentItem.AudioContent -> {
-                                        val canDelete =
-                                            currentUserId == contentItem.audio.ownerId || userRole == "ADMIN"
-                                        SesCard(
-                                            ses = contentItem.audio, navController = navController,
-                                            canDelete = canDelete,
-                                            onDeleteClicked = { sesViewModel.deleteSes(contentItem.audio.id) },
-                                            isCommentSectionClickable = false, showPlayIcon = false
-                                        )
-                                    }
-
-                                    is ContentItem.VideoContent -> {
-                                        val canDelete =
-                                            currentUserId == contentItem.video.ownerId || userRole == "ADMIN"
-                                        VideoCard(
-                                            video = contentItem.video,
-                                            navController = navController,
-                                            canDelete = canDelete,
-                                            onDeleteClicked = {
-                                                videoViewModel.deleteVideo(
-                                                    contentItem.video.id
+                                        is ContentItem.LetterContent -> {
+                                            Box(modifier = Modifier.padding(horizontal = 12.dp)) {
+                                                LetterCard(
+                                                    letter = contentItem.letter,
+                                                    navController = navController,
+                                                    currentUserId = currentUserId ?: "",
+                                                    userRole = userRole,
+                                                    isCommentSectionClickable = false,
+                                                    showContentPreview = true
                                                 )
-                                            },
-                                            onClick = {
-                                                navController.navigate(
-                                                    Constants.VIDEO_DETAIL_SCREEN.replace(
-                                                        "{videoId}",
+                                            }
+                                        }
+
+                                        is ContentItem.AudioContent -> {
+                                            val canDelete =
+                                                currentUserId == contentItem.audio.ownerId || userRole == "ADMIN"
+                                            SesCard(
+                                                ses = contentItem.audio, navController = navController,
+                                                canDelete = canDelete,
+                                                onDeleteClicked = { sesViewModel.deleteSes(contentItem.audio.id) },
+                                                isCommentSectionClickable = false, showPlayIcon = false
+                                            )
+                                        }
+
+                                        is ContentItem.VideoContent -> {
+                                            val canDelete =
+                                                currentUserId == contentItem.video.ownerId || userRole == "ADMIN"
+                                            VideoCard(
+                                                video = contentItem.video,
+                                                navController = navController,
+                                                canDelete = canDelete,
+                                                onDeleteClicked = {
+                                                    videoViewModel.deleteVideo(
                                                         contentItem.video.id
                                                     )
-                                                )
-                                            },
-                                            isCommentSectionClickable = false
-                                        )
+                                                },
+                                                onClick = {
+                                                    navController.navigate(
+                                                        Constants.VIDEO_DETAIL_SCREEN.replace(
+                                                            "{videoId}",
+                                                            contentItem.video.id
+                                                        )
+                                                    )
+                                                },
+                                                isCommentSectionClickable = false
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Çiçek Yağmuru Animasyonu
-                    if (startFlowerRainAnimation) {
-                        FlowerRainAnimation(
-                            maxWidth = screenMaxWidth,
-                            maxHeight = screenMaxHeight,
-                            onFinished = { startFlowerRainAnimation = false }
-                        )
+                        if (startFlowerRainAnimation) {
+                            FlowerRainAnimation(
+                                maxWidth = screenMaxWidth,
+                                maxHeight = screenMaxHeight,
+                                onFinished = { startFlowerRainAnimation = false }
+                            )
+                        }
                     }
                 }
-            }
+            )
         }
     }
 }

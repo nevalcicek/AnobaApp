@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
 abstract class GroupBaseChatViewModel<M : GroupMessageable>(
     protected val firebaseAuth: FirebaseAuth
 ) : ViewModel() {

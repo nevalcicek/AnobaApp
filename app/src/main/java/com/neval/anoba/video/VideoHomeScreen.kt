@@ -1,6 +1,5 @@
 package com.neval.anoba.video
 
-import android.Manifest
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -38,20 +37,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.neval.anoba.common.utils.Constants
 import com.neval.anoba.common.viewmodel.AuthViewModel
 import org.koin.androidx.compose.koinViewModel
-import java.io.File
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,7 +63,6 @@ fun VideoHomeScreen(
     val videos by videoViewModel.videos.collectAsState()
     val isUploading by videoViewModel.isUploading.collectAsState()
     val context = LocalContext.current
-    var videoUriToRecord by remember { mutableStateOf<Uri?>(null) }
 
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
@@ -75,25 +71,25 @@ fun VideoHomeScreen(
         videoViewModel.loadVideos()
     }
 
-    val takeVideoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CaptureVideo()
-    ) { success ->
-        if (success && videoUriToRecord != null) {
-            val duration = getVideoDuration(context, videoUriToRecord!!)
+    // Listen for the result from VideoEditScreen
+    LaunchedEffect(navController.currentBackStackEntry) {
+        navController.currentBackStackEntry?.savedStateHandle?.get<String>("trimmed_video_uri")?.let { uriString ->
+            val uri = uriString.toUri()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             videoViewModel.uploadVideo(
-                videoUri = videoUriToRecord!!,
-                title = "Başlıksız Video",
-                duration = duration,
-                onComplete = { uploadSuccess, _ ->
-                    if (uploadSuccess) {
-                        Toast.makeText(context, "Video yüklendi ✅", Toast.LENGTH_SHORT).show()
+                videoUri = uri,
+                title = "Video $timestamp",
+                duration = getVideoDuration(context, uri),
+                onComplete = { success, message ->
+                    if (success) {
+                        Toast.makeText(context, "Video başarıyla yüklendi!", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Video yüklenemedi.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Hata: ${message ?: "Bilinmeyen bir hata oluştu."}", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
-        } else {
-            Toast.makeText(context, "Video çekme iptal edildi.", Toast.LENGTH_SHORT).show()
+            // Clear the result to avoid re-triggering
+            navController.currentBackStackEntry?.savedStateHandle?.remove<String>("trimmed_video_uri")
         }
     }
 
@@ -101,34 +97,10 @@ fun VideoHomeScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            val duration = getVideoDuration(context, uri)
-            videoViewModel.uploadVideo(
-                videoUri = uri,
-                title = "Başlıksız Video",
-                duration = duration,
-                onComplete = { success, _ ->
-                    if (success) {
-                        Toast.makeText(context, "Video yüklendi ✅", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Video yüklenemedi.", Toast.LENGTH_LONG).show()
-                    }
-                }
-            )
+            val encodedUri = URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8.toString())
+            navController.navigate(Constants.VIDEO_EDIT_SCREEN.replace("{videoUri}", encodedUri))
         } else {
             Toast.makeText(context, "Video seçilmedi", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val permissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions[Manifest.permission.CAMERA] == true && permissions[Manifest.permission.RECORD_AUDIO] == true) {
-            createVideoUri(context)?.let { uri ->
-                videoUriToRecord = uri
-                takeVideoLauncher.launch(uri)
-            } ?: Toast.makeText(context, "Video dosyası oluşturulamadı.", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Kamera ve Mikrofon izni gerekli.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -169,7 +141,7 @@ fun VideoHomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { permissionsLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) },
+                    onClick = { navController.navigate(Constants.VIDEO_CAMERA_SCREEN) },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
@@ -229,32 +201,6 @@ fun VideoHomeScreen(
                 }
             }
         }
-    }
-}
-
-private fun createVideoUri(context: Context): Uri? {
-    return try {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val videoFileName = "MP4_${timestamp}_"
-        val storageDir = context.cacheDir
-
-        if (!storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-
-        val videoFile = File.createTempFile(
-            videoFileName,
-            ".mp4",
-            storageDir
-        )
-        Log.d("createVideoUri", "Geçici video dosyası oluşturuldu: ${videoFile.absolutePath}")
-
-        val authority = "${context.packageName}.provider"
-        FileProvider.getUriForFile(context, authority, videoFile)
-    } catch (ex: Exception) {
-        Log.e("createVideoUri", "Video URI oluşturulamadı: ${ex.message}", ex)
-        Toast.makeText(context, "Video dosyası oluşturulurken hata: ${ex.message}", Toast.LENGTH_LONG).show()
-        null
     }
 }
 

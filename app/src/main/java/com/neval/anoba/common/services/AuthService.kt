@@ -2,6 +2,7 @@ package com.neval.anoba.common.services
 
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -20,7 +21,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.net.toUri
 
 class AuthService(
     private val appUserRepository: IUserRepository,
@@ -31,13 +31,43 @@ class AuthService(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     override val authStateFlow: StateFlow<AuthState> = _authState.asStateFlow()
 
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val firebaseUser = firebaseAuth.currentUser
+        coroutineScope.launch {
+            if (firebaseUser != null) {
+                try {
+                    createUserDocumentIfMissing(firebaseUser)
+                    val regDateString = getRegistrationDateString(firebaseUser)
+                    _authState.value = AuthState.Authenticated(
+                        uid = firebaseUser.uid,
+                        displayName = firebaseUser.displayName ?: "Misafir",
+                        email = firebaseUser.email,
+                        photoUrl = firebaseUser.photoUrl?.toString(),
+                        registrationDate = regDateString
+                    )
+                    Log.d("AuthService", "AuthStateListener: State Authenticated olarak güncellendi: ${firebaseUser.uid}")
+                } catch (e: Exception) {
+                    Log.e("AuthService", "AuthStateListener içinde Firestore işlemi sırasında hata", e)
+                    _authState.value = AuthState.Error("Kullanıcı verisi doğrulanırken bir hata oluştu.")
+                }
+            } else {
+                _authState.value = AuthState.Unauthenticated
+                Log.d("AuthService", "AuthStateListener: State Unauthenticated olarak güncellendi.")
+            }
+        }
+    }
+
+    init {
+        auth.addAuthStateListener(authStateListener)
+        Log.d("AuthService", "AuthService başlatıldı ve AuthStateListener eklendi.")
+    }
+
     override fun refreshAuthState() {
         coroutineScope.launch {
             Log.d("AuthService", "refreshAuthState() manuel olarak tetiklendi.")
             try {
                 val currentUser = auth.currentUser
                 if (currentUser != null) {
-                    createUserDocumentIfMissing(currentUser)
                     val regDateString = getRegistrationDateString(currentUser)
                     _authState.value = AuthState.Authenticated(
                         uid = currentUser.uid,
@@ -46,10 +76,10 @@ class AuthService(
                         photoUrl = currentUser.photoUrl?.toString(),
                         registrationDate = regDateString
                     )
-                    Log.d("AuthService", "State manuel olarak Authenticated'a güncellendi: ${currentUser.uid}")
-                } else {
+                    Log.d("AuthService", "refreshAuthState: State manuel olarak Authenticated'a güncellendi: ${currentUser.uid}")
+                } else if (_authState.value !is AuthState.Unauthenticated) {
                     _authState.value = AuthState.Unauthenticated
-                    Log.d("AuthService", "State manuel olarak Unauthenticated'a güncellendi.")
+                    Log.d("AuthService", "refreshAuthState: State manuel olarak Unauthenticated'a güncellendi.")
                 }
             } catch (e: Exception) {
                 Log.e("AuthService", "refreshAuthState sırasında hata", e)
@@ -75,9 +105,7 @@ class AuthService(
             val firebaseUser = result.user ?: return AuthResult.Error("Kullanıcı nesnesi (Auth) null.")
 
             appUserRepository.setRememberMe(rememberMe)
-
-            createUserDocumentIfMissing(firebaseUser)
-            refreshAuthState()
+            // AuthStateListener durumu ve kullanıcı belgesini yönetecek.
             AuthResult.Success(firebaseUser)
         } catch (e: Exception) {
             val errorMessage = e.message ?: "Giriş başarısız."
@@ -120,10 +148,11 @@ class AuthService(
                     userDocRef.update("role", "MEMBER").await()
                     Log.i("AuthService", "Mevcut kullanıcının eksik 'role' alanı 'MEMBER' olarak güncellendi.")
                 }
-                Log.d("AuthService", "Kullanıcı zaten Firestore'da kayıtlı: ${firebaseUser.email}")
             }
         } catch (e: Exception) {
-            Log.e("AuthService", "Firestore kullanıcı ekleme/kontrol etme hatası", e)
+            Log.e("AuthService", "Firestore kullanıcı ekleme/kontrol etme hatası (Ask Gemini)", e)
+            _authState.value = AuthState.Error("Firestore kullanıcı verisi doğrulanırken hata oluştu.")
+            throw e
         }
     }
 
@@ -193,7 +222,7 @@ class AuthService(
             val firebaseUser =
                 result.user ?: return AuthResult.Error("Kullanıcı nesnesi (Auth) null.")
             Log.d("AuthService", "Firebase user created successfully: ${firebaseUser.uid}")
-            createUserDocumentIfMissing(firebaseUser)
+            // AuthStateListener durumu ve kullanıcı belgesini yönetecek.
             AuthResult.Success(firebaseUser)
         } catch (e: Exception) {
             Log.e("AuthService", "Kayıt (Auth) sırasında hata: ${e.message}", e)
@@ -211,8 +240,7 @@ class AuthService(
             val (success, message) = appUserRepository.loginAsGuest()
             if (success) {
                 appUserRepository.setRememberMe(false)
-                auth.currentUser?.let { createUserDocumentIfMissing(it) }
-                refreshAuthState()
+                // AuthStateListener durumu ve kullanıcı belgesini yönetecek.
                 Pair(true, "Misafir girişi başarılı. ID: ${auth.currentUser?.uid}")
             } else {
                 _authState.value = AuthState.Error(message ?: "Misafir girişi başarısız.")
@@ -240,17 +268,14 @@ class AuthService(
         val firebaseUser = auth.currentUser ?: return Pair(false, "Kullanıcı oturumu bulunamadı.")
 
         return try {
-            // 1. Firebase Auth profilini güncelle
             val profileUpdates = UserProfileChangeRequest.Builder()
                 .setDisplayName(newName)
                 .build()
             firebaseUser.updateProfile(profileUpdates).await()
 
-            // 2. Firestore veritabanını güncelle
             firestore.collection("users").document(firebaseUser.uid)
                 .update("displayName", newName).await()
 
-            // 3. Lokal durumu yenile (UI'ın güncellenmesi için)
             refreshAuthState()
             Pair(true, "Kullanıcı adı başarıyla güncellendi.")
         } catch (e: Exception) {
@@ -264,11 +289,9 @@ class AuthService(
         val user = auth.currentUser ?: return Pair(false, "Kullanıcı oturumu bulunamadı.")
 
         return try {
-            // 1. Yeniden kimlik doğrulama
             val credential = EmailAuthProvider.getCredential(email, password)
             user.reauthenticate(credential).await()
 
-            // 2. Kullanıcıyı sil
             user.delete().await()
 
             Pair(true, "Hesap başarıyla silindi.")
@@ -282,26 +305,22 @@ class AuthService(
     override suspend fun updateUserProfilePicture(imageUri: Uri): Pair<Boolean, String?> {
         val firebaseUser = auth.currentUser ?: return Pair(false, "Kullanıcı oturumu bulunamadı.")
         return try {
-            // 1. Resmi Firebase Storage'a yükle
             val photoUrl =
                 appUserRepository.uploadProfileImage(firebaseUser.uid, imageUri) ?: return Pair(
                     false,
                     "Resim yüklenemedi."
                 )
 
-            // 2. Firebase Auth profilini güncelle
             val profileUpdates = UserProfileChangeRequest.Builder()
                 .setPhotoUri(photoUrl.toUri())
                 .build()
             firebaseUser.updateProfile(profileUpdates).await()
 
-            // 3. Firestore veritabanını güncelle
             val success = appUserRepository.updateUserProfilePhotoUrl(firebaseUser.uid, photoUrl)
             if (!success) {
                 return Pair(false, "Veritabanı güncellenemedi.")
             }
 
-            // 4. Lokal durumu yenile (UI'ın güncellenmesi için)
             refreshAuthState()
             Pair(true, "Profil fotoğrafı başarıyla güncellendi.")
         } catch (e: Exception) {

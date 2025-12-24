@@ -1,6 +1,9 @@
 package com.neval.anoba.photo
 
+import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,11 +72,40 @@ fun PhotoDetailScreen(
     val context = LocalContext.current
     val photo by photoViewModel.photoDetails.collectAsState()
     val userReactions by photoViewModel.userReactions.collectAsState()
+    val shareState by photoViewModel.shareState.collectAsState()
 
     val currentUserId by authViewModel.currentUserId.collectAsState()
     val userRole by authViewModel.userRole.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val shareLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { }
+
+    LaunchedEffect(shareState) {
+        when (val state = shareState) {
+            is ShareState.Success -> {
+                val shareIntent: Intent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, state.uri)
+                    type = "image/jpeg"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(shareIntent, "Fotoğrafı paylaş...")
+                shareLauncher.launch(chooser)
+                photoViewModel.resetShareState()
+            }
+            is ShareState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                photoViewModel.resetShareState()
+            }
+            is ShareState.Processing -> {
+                Toast.makeText(context, "Paylaşım için hazırlanıyor...", Toast.LENGTH_SHORT).show()
+            }
+            ShareState.Idle -> { }
+        }
+    }
 
     LaunchedEffect(photoId) {
         photoViewModel.loadPhotoDetails(photoId)
@@ -114,6 +147,13 @@ fun PhotoDetailScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                            if (shareState !is ShareState.Processing) {
+                                photoViewModel.sharePhoto(context, currentPhoto.photoUrl, currentPhoto.id)
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Paylaş")
+                        }
                         IconButton(onClick = {
                             navController.navigate(Constants.HOME_SCREEN) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -164,7 +204,7 @@ fun PhotoDetailScreen(
                             contentDescription = "Fotoğraf ${currentPhoto.id}",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(1.4f), // FOTOĞRAF YÜKSEKLİĞİ: Bu satır, fotoğrafın en-boy oranını 1.4:1 (genişlik/yükseklik) olarak ayarlar.
+                                .aspectRatio(1.4f),
                             contentScale = ContentScale.Crop
                         )
 
@@ -221,7 +261,6 @@ fun PhotoDetailScreen(
                     }
                 }
 
-                // KART İLE EMOJİ SATIRI ARASINDAKİ BOŞLUK: Bu Spacer, fotoğraf kartı ile alttaki emoji satırı arasındaki dikey boşluğu oluşturur.
                 Spacer(modifier = Modifier.height(18.dp))
                 PhotoEmojiReactionRow(
                     reactions = currentPhoto.reactions.filterValues { it > 0 },
@@ -239,7 +278,6 @@ fun PhotoDetailScreen(
                             val route = Constants.PHOTO_COMMENTS_ROUTE.replace("{photoId}", currentPhoto.id)
                             navController.navigate(route)
                         }
-                        // EMOJİ SATIRI İLE YORUM SATIRI ARASINDAKİ BOŞLUK: Bu padding, yorum satırının üst ve alt kısmına 8.dp'lik bir iç boşluk ekleyerek üstteki emoji satırıyla arasında bir mesafe oluşturur.
                         .padding(vertical = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

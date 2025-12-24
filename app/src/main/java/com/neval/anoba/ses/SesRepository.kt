@@ -1,7 +1,9 @@
 package com.neval.anoba.ses
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -78,5 +80,18 @@ class SesRepository(
             Log.e("SesRepository", "Error deleting ses: $sesId", e)
             false
         }
+    }
+
+    suspend fun getAudioUriForSharing(context: Context, audioUrl: String, sesId: String): Uri {
+        val storageRef = storage.getReferenceFromUrl(audioUrl)
+        val localFile = File(context.cacheDir, "$sesId.m4a")
+
+        storageRef.getFile(localFile).await()
+
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            localFile
+        )
     }
 }

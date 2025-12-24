@@ -1,5 +1,6 @@
 package com.neval.anoba.photo
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +14,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+
+sealed class ShareState {
+    object Idle : ShareState()
+    object Processing : ShareState()
+    data class Success(val uri: Uri) : ShareState()
+    data class Error(val message: String) : ShareState()
+}
 
 class PhotoViewModel(
     private val authService: AuthServiceInterface,
@@ -34,6 +42,9 @@ class PhotoViewModel(
 
     private val _isUploading = MutableStateFlow(false)
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+    
+    private val _shareState = MutableStateFlow<ShareState>(ShareState.Idle)
+    val shareState: StateFlow<ShareState> = _shareState.asStateFlow()
 
     val userId: String get() = authService.getCurrentUserId()
 
@@ -112,6 +123,22 @@ class PhotoViewModel(
                 _userReactions.value = oldReactions
             }
         }
+    }
+
+    fun sharePhoto(context: Context, photoUrl: String, photoId: String) {
+        viewModelScope.launch {
+            _shareState.value = ShareState.Processing
+            try {
+                val uri = photoRepository.getPhotoUriForSharing(context, photoUrl, photoId)
+                _shareState.value = ShareState.Success(uri)
+            } catch (e: Exception) {
+                _shareState.value = ShareState.Error(e.message ?: "Fotoğraf paylaşılırken bir hata oluştu.")
+            }
+        }
+    }
+
+    fun resetShareState() {
+        _shareState.value = ShareState.Idle
     }
 
     fun loadComments(photoId: String) {

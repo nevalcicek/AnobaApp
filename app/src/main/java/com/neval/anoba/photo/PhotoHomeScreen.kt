@@ -70,20 +70,6 @@ fun PhotoHomeScreen(
 
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            photoViewModel.uploadPhotoAndCreateRecord(it) { success, _ ->
-                if (success) {
-                    Toast.makeText(context, "Fotoğraf yüklendi!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Yükleme başarısız oldu.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
@@ -167,7 +153,7 @@ fun PhotoHomeScreen(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
-                    onClick = { imagePickerLauncher.launch("image/*") },
+                    onClick = { navController.navigate(Constants.PHOTO_GALLERY_SCREEN) }, // GÜNCELLENDİ
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(

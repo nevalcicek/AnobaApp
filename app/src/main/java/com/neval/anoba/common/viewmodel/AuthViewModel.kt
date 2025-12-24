@@ -68,12 +68,12 @@ class AuthViewModel(
     val profileImageUrl: StateFlow<String> = authService.authStateFlow
         .mapLatest { serviceState ->
             when (serviceState) {
-                is AuthState.Authenticated -> serviceState.photoUrl ?: "https://via.placeholder.com/150"
-                else -> "https://via.placeholder.com/150"
+                is AuthState.Authenticated -> serviceState.photoUrl ?: ""
+                else -> ""
             }
         }
         .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "https://via.placeholder.com/150")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val registrationDate: StateFlow<String?> = authService.authStateFlow
@@ -111,12 +111,24 @@ class AuthViewModel(
 
     init {
         Log.d("AuthViewModel", "AuthViewModel initialized. Listening to AuthService state.")
+
+        // Mevcut durumu hemen kontrol et
+        val initialState = authService.authStateFlow.value
+        if (initialState is AuthState.Authenticated) {
+            Log.d("AuthViewModel", "Initial state is Authenticated, fetching user data immediately.")
+            fetchUserNumber(initialState.uid)
+            fetchUserRole()
+        }
+
+        // Gelecekteki değişiklikleri dinle
         viewModelScope.launch {
             authService.authStateFlow.collect { serviceState ->
                 if (serviceState is AuthState.Authenticated) {
+                    Log.d("AuthViewModel", "Auth state changed to Authenticated, fetching user data.")
                     fetchUserNumber(serviceState.uid)
                     fetchUserRole()
                 } else {
+                    Log.d("AuthViewModel", "Auth state changed to Unauthenticated.")
                     _sonNumara.value = null
                     _userRole.value = "GUEST"
                 }
@@ -184,6 +196,9 @@ class AuthViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             val (success, message) = authService.updateUserProfilePicture(imageUri)
+            if (success) {
+                authService.refreshAuthState()
+            }
             onResult(success, message)
             _isLoading.value = false
         }

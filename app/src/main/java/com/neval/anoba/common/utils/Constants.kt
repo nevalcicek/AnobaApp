@@ -2,6 +2,9 @@ package com.neval.anoba.common.utils
 
 object Constants {
 
+    // --- ROOT ---
+    const val ROOT_GRAPH = "root_graph"
+
     // --- SPLASH & AUTH ---
     const val SPLASH_SCREEN = "splash_screen"
     const val LOGIN_NAV_GRAPH = "login_nav_graph"
@@ -41,8 +44,10 @@ object Constants {
     // --- VIDEO ---
     const val VIDEO_NAV_GRAPH = "video_nav_graph"
     const val VIDEO_HOME_SCREEN = "video_home_screen"
+    const val VIDEO_CAMERA_SCREEN = "video_camera_screen"
     const val VIDEO_DETAIL_SCREEN = "video_detail_screen/{videoId}"
     const val VIDEO_COMMENTS_ROUTE = "video_comments_screen/{videoId}"
+    const val VIDEO_EDIT_SCREEN = "video_edit_screen/{videoUri}"
 
     // --- SES ---
     const val SES_NAV_GRAPH = "ses_nav_graph"

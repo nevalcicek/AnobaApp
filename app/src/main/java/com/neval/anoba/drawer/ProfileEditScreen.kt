@@ -138,8 +138,8 @@ fun ProfileEditScreen(
                 onClick = {
                     isUpdating = true
                     // Seçilen bir resim varsa önce onu yükle
-                    selectedImageUri?.let {
-                        authViewModel.updateUserProfilePicture(it) { success, message ->
+                    selectedImageUri?.let { uri ->
+                        authViewModel.updateUserProfilePicture(uri) { success, message ->
                             if (success) {
                                 // Resim yüklendikten sonra adı güncelle
                                 updateDisplayName(authViewModel, newDisplayName, context, navController) { isUpdating = false }

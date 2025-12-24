@@ -1,7 +1,9 @@
 package com.neval.anoba.drawer
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,7 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -25,7 +27,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.neval.anoba.R
 import com.neval.anoba.common.utils.Constants
@@ -53,6 +55,20 @@ fun ProfileScreen(
 
     LaunchedEffect(Unit) {
         authViewModel.refreshAuthState()
+    }
+
+    val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            authViewModel.updateUserProfilePicture(uri) { success, message ->
+                if (success) {
+                    Toast.makeText(context, "Profil resmi güncellendi.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Hata: ${message ?: "Bilinmeyen hata"}", Toast.LENGTH_LONG).show()
+                }
+            }
+        } else {
+            Toast.makeText(context, "Resim seçilmedi.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -183,26 +199,37 @@ fun ProfileScreen(
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                .clickable(enabled = isLoggedInWithValidEmail) {
+                                    pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(
-                                    model = profileImageUrl.ifBlank { R.drawable.ic_default_profile },
-                                    error = painterResource(id = R.drawable.ic_default_profile),
-                                ),
+                            AsyncImage(
+                                model = profileImageUrl.ifBlank { R.drawable.ic_default_profile },
                                 contentDescription = "Profil Fotoğrafı",
                                 modifier = Modifier
-                                    .size(110.dp)
-                                    .clip(CircleShape),
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                                 contentScale = ContentScale.Crop,
-                                colorFilter = if (profileImageUrl.isBlank()) {
-                                    ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                                } else {
-                                    null
-                                }
+                                error = painterResource(id = R.drawable.ic_default_profile)
                             )
+                            // Edit icon overlay
+                            if (isLoggedInWithValidEmail) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                        .padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Profili Düzenle",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))

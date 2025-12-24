@@ -70,9 +70,6 @@ fun PrivateChatScreen(
     navController: NavHostController,
     privateChatViewModel: PrivateChatViewModel,
 ) {
-    LaunchedEffect(Unit) {
-        privateChatViewModel.loadAllUsersExceptCurrent()
-    }
     val uiState by privateChatViewModel.uiState.collectAsStateWithLifecycle()
     val selectedMessages by privateChatViewModel.selectedMessages.collectAsStateWithLifecycle()
     val isSelectionModeActive by privateChatViewModel.isSelectionModeActive.collectAsStateWithLifecycle()

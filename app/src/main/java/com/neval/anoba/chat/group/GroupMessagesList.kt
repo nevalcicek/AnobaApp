@@ -71,7 +71,7 @@ fun GroupMessageRowItem(
         .padding(vertical = 4.dp, horizontal = 8.dp)
 
     val isReadAll = remember(message.readBy, groupMemberCount) {
-        // The sender is not in the readBy list, so we check readBy.size against memberCount - 1
+        // Gönderen kişi 'okundu' listesinde olmadığı için, okundu sayısını (üye sayısı - 1) ile karşılaştırıyoruz
         message.readBy.size >= groupMemberCount - 1
     }
 

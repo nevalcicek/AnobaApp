@@ -14,14 +14,4 @@ class LoginRepository(
     override suspend fun register(email: String, password: String): AuthResult {
         return authService.register(email, password)
     }
-
-    override suspend fun saveUserLocally(userId: String, email: String, username: String) {
-        // Bu fonksiyonun implementasyonu AuthService içinde olabilir.
-        // Şimdilik boş bırakıyoruz.
-    }
-
-    override suspend fun clearUser() {
-        // Bu fonksiyonun implementasyonu AuthService içinde olabilir.
-        // Şimdilik boş bırakıyoruz.
-    }
 }

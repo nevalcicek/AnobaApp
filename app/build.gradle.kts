@@ -90,7 +90,7 @@ dependencies {
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.appcheck.ktx)
-    
+
     debugImplementation(libs.firebase.appcheck.debug)
 
     implementation(libs.androidx.datastore.preferences)
@@ -107,20 +107,32 @@ dependencies {
         exclude(group = "com.android.support", module = "support-v4")
     }
 
+    implementation(libs.coil.video)
+
     implementation(libs.androidx.room.ktx)
     implementation(libs.generativeai)
     implementation(libs.androidx.tools.core)
-    implementation(libs.coil.video)
     implementation(libs.identity.jvm)
 
     ksp(libs.androidxRoomCompiler)
 
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.accompanist.permissions)
+    implementation(libs.androidx.room.runtime)
+
+    // Media3
+    implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.common)
-    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.media3.transformer)
+    implementation(libs.androidx.media3.effect)
+
+    // CameraX
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.video)
+    implementation(libs.androidx.camera.view)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)

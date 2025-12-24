@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neval.anoba.common.services.AuthServiceInterface
 import com.neval.anoba.login.state.AuthState
+import com.neval.anoba.photo.ShareState
 import com.neval.anoba.ses.sesemoji.SesEmojiReactionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,9 @@ class SesViewModel(
 
     private val _sending = MutableStateFlow(false)
     val sending: StateFlow<Boolean> = _sending.asStateFlow()
+    
+    private val _shareState = MutableStateFlow<ShareState>(ShareState.Idle)
+    val shareState: StateFlow<ShareState> = _shareState.asStateFlow()
 
     private var mediaRecorder: MediaRecorder? = null
     var audioFile: File? = null
@@ -78,7 +82,7 @@ class SesViewModel(
     }
 
     fun startRecording(context: Context) {
-        val fileName = "${context.cacheDir.absolutePath}/audiorecord.3gp"
+        val fileName = "${context.cacheDir.absolutePath}/audiorecord.m4a"
         audioFile = File(fileName)
 
         mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -88,8 +92,8 @@ class SesViewModel(
             MediaRecorder()
         }.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             setOutputFile(fileName)
             try {
                 prepare()
@@ -197,6 +201,22 @@ class SesViewModel(
         } catch (_: Exception) {
             0L
         }
+    }
+    
+    fun shareSes(context: Context, audioUrl: String, sesId: String) {
+        viewModelScope.launch {
+            _shareState.value = ShareState.Processing
+            try {
+                val uri = sesRepository.getAudioUriForSharing(context, audioUrl, sesId)
+                _shareState.value = ShareState.Success(uri)
+            } catch (e: Exception) {
+                _shareState.value = ShareState.Error(e.message ?: "Ses paylaşılırken bir hata oluştu.")
+            }
+        }
+    }
+
+    fun resetShareState() {
+        _shareState.value = ShareState.Idle
     }
 
     override fun onCleared() {

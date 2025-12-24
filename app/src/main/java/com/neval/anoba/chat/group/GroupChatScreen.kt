@@ -96,7 +96,7 @@ fun GroupChatScreen(
     var showDeleteGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf(activeGroup?.name ?: "") }
 
-    // Derive the list of users who are typing, excluding the current user.
+    // Mevcut kullanıcı hariç, yazmakta olan kullanıcıların listesini oluştur.
     val typingUsers by remember(activeGroup) {
         derivedStateOf {
             activeGroup?.typingUsers?.filterKeys { it != currentUserId }?.values?.toList() ?: emptyList()
@@ -285,7 +285,7 @@ fun GroupChatScreen(
                     groupMemberCount = activeGroup?.members?.size ?: 0
                 )
 
-                // Typing indicator
+                // Yazıyor göstergesi
                 AnimatedVisibility(
                     visible = typingUsers.isNotEmpty(),
                     enter = fadeIn(),

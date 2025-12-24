@@ -53,7 +53,7 @@ fun GroupItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Group Image or Initials Avatar
+            //Grup Resmi veya Baş Harf Avatarı
             Box(
                 modifier = Modifier
                     .size(48.dp)

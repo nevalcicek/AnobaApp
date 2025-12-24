@@ -1,7 +1,9 @@
 package com.neval.anoba.video
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -9,6 +11,7 @@ import com.google.firebase.firestore.dataObjects
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import java.util.UUID
 
 class VideoRepository(
@@ -86,5 +89,18 @@ class VideoRepository(
             Log.e("VideoRepository", "Error deleting video: $videoId", e)
             false
         }
+    }
+
+    suspend fun getVideoUriForSharing(context: Context, videoUrl: String, videoId: String): Uri {
+        val storageRef = storage.getReferenceFromUrl(videoUrl)
+        val localFile = File(context.cacheDir, "$videoId.mp4")
+
+        storageRef.getFile(localFile).await()
+
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            localFile
+        )
     }
 }

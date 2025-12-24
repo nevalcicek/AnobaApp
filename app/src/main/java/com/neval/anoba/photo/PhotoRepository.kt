@@ -1,7 +1,9 @@
 package com.neval.anoba.photo
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -9,6 +11,7 @@ import com.google.firebase.firestore.dataObjects
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import java.util.UUID
 
 class PhotoRepository(
@@ -74,5 +77,18 @@ class PhotoRepository(
             Log.e("PhotoRepository", "Error deleting photo: $photoId", e)
             false
         }
+    }
+
+    suspend fun getPhotoUriForSharing(context: Context, photoUrl: String, photoId: String): Uri {
+        val storageRef = storage.getReferenceFromUrl(photoUrl)
+        val localFile = File(context.cacheDir, "$photoId.jpg")
+        
+        storageRef.getFile(localFile).await()
+        
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            localFile
+        )
     }
 }

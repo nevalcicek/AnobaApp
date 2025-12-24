@@ -42,21 +42,19 @@ class LetterViewModel(
                 }
             }
         }
+        loadAllUsers() // ViewModel başlatıldığında kullanıcıları dinlemeye başla
     }
     
-    // YENİ EKLENEN
-    fun loadAllUsers() {
+    private fun loadAllUsers() {
         viewModelScope.launch {
-            try {
-                _allUsers.value = userRepository.getAllUsers()
-            } catch (e: Exception) {
-                Log.e("LetterViewModel", "Error loading all users", e)
-            }
+            userRepository.getAllUsersStream()
+                .catch { e ->
+                    Log.e("LetterViewModel", "Error loading all users from stream", e)
+                }
+                .collect { users ->
+                    _allUsers.value = users
+                }
         }
-    }
-
-    suspend fun findUserByUsername(username: String): User? {
-        return userRepository.findUserByUsername(username)
     }
 
     fun loadInitialData() {

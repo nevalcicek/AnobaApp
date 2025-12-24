@@ -115,7 +115,7 @@ fun VideoCard(
             ) {
                 // The thumbnail image (in the background)
                 AsyncImage(
-                    model = video.videoUrl,
+                    model = video.thumbnailUrl ?: video.videoUrl,
                     imageLoader = imageLoader,
                     contentDescription = video.title,
                     contentScale = ContentScale.Crop,
@@ -228,3 +228,4 @@ private fun formatDuration(millis: Long?): String {
     val seconds = TimeUnit.MILLISECONDS.toSeconds(safeMillis) % 60
     return String.format(Locale.US, "%d:%02d", minutes, seconds)
 }
+

@@ -39,7 +39,34 @@ class PrivateChatViewModel(
         MutableStateFlow<PrivateChatUiState>(PrivateChatUiState.Success(emptyList()))
     val uiState: StateFlow<PrivateChatUiState> = _uiState.asStateFlow()
 
-    val userList = MutableStateFlow<List<GeneralChatUser>>(emptyList())
+    private val _userList = MutableStateFlow<List<GeneralChatUser>>(emptyList())
+    val userList: StateFlow<List<GeneralChatUser>> = _userList.asStateFlow()
+
+    init {
+        listenForAllUsers()
+    }
+
+    private fun listenForAllUsers() {
+        viewModelScope.launch {
+            userRepository.getAllUsersStream()
+                .catch { e ->
+                    Log.e(LOCAL_TAG, "Kullanıcı listesi akışında hata", e)
+                }
+                .collect { users ->
+                    val filteredUsers = users.mapNotNull { user ->
+                        if (user.uid == currentUserId) return@mapNotNull null
+                        GeneralChatUser(
+                            id = user.uid,
+                            displayName = user.displayName,
+                            email = user.email,
+                            photoUrl = user.photoURL,
+                            role = user.role
+                        )
+                    }
+                    _userList.value = filteredUsers
+                }
+        }
+    }
 
     fun resetChatState() {
         _uiState.value = PrivateChatUiState.Success(emptyList())
@@ -202,7 +229,7 @@ class PrivateChatViewModel(
         }
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val user = userRepository.getUserById(partnerUserId) // DÜZELTME
+                val user = userRepository.getUserById(partnerUserId)
                 if (user == null) {
                     withContext(Dispatchers.Main) { _chatPartnerProfile.value = null }
                     return@launch
@@ -223,30 +250,6 @@ class PrivateChatViewModel(
                 withContext(Dispatchers.Main) {
                     _chatPartnerProfile.value = null
                 }
-            }
-        }
-    }
-
-    fun loadAllUsersExceptCurrent() {
-        val currentUserId = this.currentUserId ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val allUsers = userRepository.getAllUsers() // DÜZELTME
-                val filteredUsers = allUsers.mapNotNull { user ->
-                    if (user.uid == currentUserId) return@mapNotNull null
-                    GeneralChatUser(
-                        id = user.uid,
-                        displayName = user.displayName,
-                        email = user.email,
-                        photoUrl = user.photoURL,
-                        role = user.role
-                    )
-                }
-                withContext(Dispatchers.Main) {
-                    userList.value = filteredUsers
-                }
-            } catch (e: Exception) {
-                Log.e("PrivateChatViewModel", "Kullanıcı listesi alınamadı: ${e.message}", e)
             }
         }
     }
